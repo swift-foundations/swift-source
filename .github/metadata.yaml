@@ -1,6 +1,6 @@
 # .github/metadata.yaml
 # Triaged by AI-assisted bulk pass (2026-04-29).
-description: "Source for Swift."
+description: "Byte-exact source-file loading and caching for lexers, parsers, and diagnostics in Swift."
 topics:
   - foundations
   - source
