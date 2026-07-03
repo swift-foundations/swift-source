@@ -4,6 +4,7 @@
 // Tests for Source.Loader, Source.Cache, and Source.Error.
 
 import Testing
+
 @testable import Source
 
 @Suite
@@ -43,7 +44,7 @@ struct SourceLoaderTests {
         @Test
         func stripBOMFromPrefixedBuffer() {
             let bom: [UInt8] = [0xEF, 0xBB, 0xBF]
-            let content: [UInt8] = [0x41, 0x42, 0x43] // "ABC"
+            let content: [UInt8] = [0x41, 0x42, 0x43]  // "ABC"
             let input = bom + content
             let result = Source.Loader._stripBOM(from: input)
             #expect(result == content)
@@ -51,7 +52,7 @@ struct SourceLoaderTests {
 
         @Test
         func preserveBufferWithoutBOM() {
-            let content: [UInt8] = [0x41, 0x42, 0x43] // "ABC"
+            let content: [UInt8] = [0x41, 0x42, 0x43]  // "ABC"
             let result = Source.Loader._stripBOM(from: content)
             #expect(result == content)
         }
@@ -97,7 +98,7 @@ struct SourceLoaderTests {
 
             let second = try cache.load(contentsOf: "/dev/null")
             #expect(first == second)
-            #expect(cache.count == 1) // No additional entry.
+            #expect(cache.count == 1)  // No additional entry.
         }
 
         @Test

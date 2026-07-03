@@ -41,8 +41,10 @@ extension Source.Error: CustomStringConvertible {
         switch self {
         case .fileNotFound(let path):
             return "Source file not found: \(path)"
+
         case .openFailed(let path, let errno):
             return "Failed to open source file '\(path)': errno \(errno)"
+
         case .readFailed(let path, let errno):
             return "Failed to read source file '\(path)': errno \(errno)"
         }

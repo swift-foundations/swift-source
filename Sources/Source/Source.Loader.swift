@@ -4,11 +4,11 @@
 // POSIX-based source file loading.
 
 #if canImport(Darwin)
-internal import Darwin
+    internal import Darwin
 #elseif canImport(Glibc)
-internal import Glibc
+    internal import Glibc
 #elseif canImport(Musl)
-internal import Musl
+    internal import Musl
 #endif
 
 extension Source {
@@ -54,10 +54,10 @@ extension Source.Loader {
         contentsOf path: Swift.String
     ) throws(Source.Error) -> [UInt8] {
         #if canImport(Darwin) || canImport(Glibc) || canImport(Musl)
-        return try _loadPOSIX(contentsOf: path)
+            return try _loadPOSIX(contentsOf: path)
         #else
-        // Windows / other platforms: not yet supported
-        fatalError("Source.Loader is not implemented for this platform")
+            // Windows / other platforms: not yet supported
+            fatalError("Source.Loader is not implemented for this platform")
         #endif
     }
 }
@@ -65,70 +65,70 @@ extension Source.Loader {
 // MARK: - POSIX Implementation
 
 #if canImport(Darwin) || canImport(Glibc) || canImport(Musl)
-extension Source.Loader {
-    /// POSIX implementation of file loading.
-    @usableFromInline
-    internal static func _loadPOSIX(
-        contentsOf path: Swift.String
-    ) throws(Source.Error) -> [UInt8] {
-        // Open the file read-only.
-        let fd = path.withCString { cPath in
-            open(cPath, O_RDONLY)
-        }
-
-        guard fd >= 0 else {
-            let error = errno
-            if error == ENOENT {
-                throw .fileNotFound(path: path)
+    extension Source.Loader {
+        /// POSIX implementation of file loading.
+        @usableFromInline
+        internal static func _loadPOSIX(
+            contentsOf path: Swift.String
+        ) throws(Source.Error) -> [UInt8] {
+            // Open the file read-only.
+            let fd = path.withCString { cPath in
+                open(cPath, O_RDONLY)
             }
-            throw .openFailed(path: path, errno: error)
+
+            guard fd >= 0 else {
+                let error = errno
+                if error == ENOENT {
+                    throw .fileNotFound(path: path)
+                }
+                throw .openFailed(path: path, errno: error)
+            }
+
+            // Ensure the file descriptor is closed on all exit paths.
+            defer { close(fd) }
+
+            // Determine file size via fstat.
+            var status = stat()
+            let fstatResult = fstat(fd, &status)
+            guard fstatResult == 0 else {
+                throw .readFailed(path: path, errno: errno)
+            }
+
+            let fileSize = Int(status.st_size)
+
+            // Empty file — return immediately.
+            if fileSize == 0 {
+                return []
+            }
+
+            // Allocate buffer and read entire file.
+            var buffer = [UInt8](repeating: 0, count: fileSize)
+            let bytesRead = buffer.withUnsafeMutableBufferPointer { pointer in
+                read(fd, pointer.baseAddress, fileSize)
+            }
+
+            guard bytesRead == fileSize else {
+                throw .readFailed(path: path, errno: errno)
+            }
+
+            // Strip UTF-8 BOM if present.
+            return _stripBOM(from: buffer)
         }
 
-        // Ensure the file descriptor is closed on all exit paths.
-        defer { close(fd) }
-
-        // Determine file size via fstat.
-        var status = stat()
-        let fstatResult = fstat(fd, &status)
-        guard fstatResult == 0 else {
-            throw .readFailed(path: path, errno: errno)
+        /// Strips the UTF-8 BOM (0xEF, 0xBB, 0xBF) from the start of the buffer.
+        ///
+        /// The BOM is a legacy marker with no semantic meaning in UTF-8. Removing it
+        /// ensures byte offsets in the lexer correspond directly to source positions.
+        @usableFromInline
+        internal static func _stripBOM(from buffer: [UInt8]) -> [UInt8] {
+            if buffer.count >= 3,
+                buffer[0] == 0xEF,
+                buffer[1] == 0xBB,
+                buffer[2] == 0xBF
+            {
+                return Array(buffer.dropFirst(3))
+            }
+            return buffer
         }
-
-        let fileSize = Int(status.st_size)
-
-        // Empty file — return immediately.
-        if fileSize == 0 {
-            return []
-        }
-
-        // Allocate buffer and read entire file.
-        var buffer = [UInt8](repeating: 0, count: fileSize)
-        let bytesRead = buffer.withUnsafeMutableBufferPointer { pointer in
-            read(fd, pointer.baseAddress, fileSize)
-        }
-
-        guard bytesRead == fileSize else {
-            throw .readFailed(path: path, errno: errno)
-        }
-
-        // Strip UTF-8 BOM if present.
-        return _stripBOM(from: buffer)
     }
-
-    /// Strips the UTF-8 BOM (0xEF, 0xBB, 0xBF) from the start of the buffer.
-    ///
-    /// The BOM is a legacy marker with no semantic meaning in UTF-8. Removing it
-    /// ensures byte offsets in the lexer correspond directly to source positions.
-    @usableFromInline
-    internal static func _stripBOM(from buffer: [UInt8]) -> [UInt8] {
-        if buffer.count >= 3,
-           buffer[0] == 0xEF,
-           buffer[1] == 0xBB,
-           buffer[2] == 0xBF
-        {
-            return Array(buffer.dropFirst(3))
-        }
-        return buffer
-    }
-}
 #endif
