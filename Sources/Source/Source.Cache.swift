@@ -40,52 +40,54 @@ extension Source {
         public init() {
             self._loaded = [:]
         }
+    }
+}
 
-        /// Loads the contents of a source file, returning cached data if available.
-        ///
-        /// On cache miss, delegates to ``Source.Loader.load(contentsOf:)`` and
-        /// stores the result for future lookups.
-        ///
-        /// - Parameter path: Absolute or relative file system path.
-        /// - Returns: The file contents as raw UTF-8 bytes (BOM-stripped).
-        /// - Throws: `Source.Error` on I/O failure (only on cache miss).
-        @inlinable
-        public mutating func load(
-            contentsOf path: Swift.String
-        ) throws(Source.Error) -> [UInt8] {
-            if let cached = _loaded[path] {
-                return cached
-            }
-            let content = try Source.Loader.load(contentsOf: path)
-            _loaded[path] = content
-            return content
+extension Source.Cache {
+    /// Loads the contents of a source file, returning cached data if available.
+    ///
+    /// On cache miss, delegates to ``Source.Loader.load(contentsOf:)`` and
+    /// stores the result for future lookups.
+    ///
+    /// - Parameter path: Absolute or relative file system path.
+    /// - Returns: The file contents as raw UTF-8 bytes (BOM-stripped).
+    /// - Throws: `Source.Error` on I/O failure (only on cache miss).
+    @inlinable
+    public mutating func load(
+        contentsOf path: Swift.String
+    ) throws(Source.Error) -> [UInt8] {
+        if let cached = _loaded[path] {
+            return cached
         }
+        let content = try Source.Loader.load(contentsOf: path)
+        _loaded[path] = content
+        return content
+    }
 
-        /// The number of files currently cached.
-        @inlinable
-        public var count: Int {
-            _loaded.count
-        }
+    /// The number of files currently cached.
+    @inlinable
+    public var count: Int {
+        _loaded.count
+    }
 
-        /// Whether the cache contains data for the given path.
-        @inlinable
-        public func contains(path: Swift.String) -> Bool {
-            _loaded[path] != nil
-        }
+    /// Whether the cache contains data for the given path.
+    @inlinable
+    public func contains(path: Swift.String) -> Bool {
+        _loaded[path] != nil
+    }
 
-        /// Removes the cached content for the given path.
-        ///
-        /// Returns the previously cached bytes, or `nil` if the path was not cached.
-        @inlinable
-        @discardableResult
-        public mutating func remove(path: Swift.String) -> [UInt8]? {
-            _loaded.removeValue(forKey: path)
-        }
+    /// Removes the cached content for the given path.
+    ///
+    /// Returns the previously cached bytes, or `nil` if the path was not cached.
+    @inlinable
+    @discardableResult
+    public mutating func remove(path: Swift.String) -> [UInt8]? {
+        _loaded.removeValue(forKey: path)
+    }
 
-        /// Removes all cached content.
-        @inlinable
-        public mutating func removeAll() {
-            _loaded.removeAll()
-        }
+    /// Removes all cached content.
+    @inlinable
+    public mutating func removeAll() {
+        _loaded.removeAll()
     }
 }
