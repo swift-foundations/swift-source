@@ -7,82 +7,86 @@ import Testing
 
 @testable import Source
 
-@Suite
-struct SourceLoaderTests {
-
-    // MARK: - Loader
-
+extension Source.Loader {
     @Suite
-    struct Loader {
-        @Test
-        func `load Nonexistent File Throws File Not Found`() throws {
-            #expect(throws: Source.Error.fileNotFound(path: "/nonexistent/path/to/file.swift")) {
-                try Source.Loader.load(contentsOf: "/nonexistent/path/to/file.swift")
+    struct Test {
+
+        // MARK: - Loader
+
+        @Suite
+        struct Loader {
+            @Test
+            func `load Nonexistent File Throws File Not Found`() throws {
+                #expect(throws: Source.Error.fileNotFound(path: "/nonexistent/path/to/file.swift")) {
+                    try Source.Loader.load(contentsOf: "/nonexistent/path/to/file.swift")
+                }
+            }
+
+            @Test
+            func `load Existing File Returns Bytes`() throws {
+                // /usr/bin/true exists on all POSIX systems and is a small binary.
+                // We just verify it loads without error and returns non-empty data.
+                let bytes = try Source.Loader.load(contentsOf: "/usr/bin/true")
+                #expect(!bytes.isEmpty)
+            }
+
+            @Test
+            func `load Empty File Returns Empty Array`() throws {
+                // /dev/null reads as empty.
+                let bytes = try Source.Loader.load(contentsOf: "/dev/null")
+                #expect(bytes.isEmpty)
             }
         }
 
-        @Test
-        func `load Existing File Returns Bytes`() throws {
-            // /usr/bin/true exists on all POSIX systems and is a small binary.
-            // We just verify it loads without error and returns non-empty data.
-            let bytes = try Source.Loader.load(contentsOf: "/usr/bin/true")
-            #expect(!bytes.isEmpty)
-        }
+        // MARK: - BOM Stripping
 
-        @Test
-        func `load Empty File Returns Empty Array`() throws {
-            // /dev/null reads as empty.
-            let bytes = try Source.Loader.load(contentsOf: "/dev/null")
-            #expect(bytes.isEmpty)
-        }
-    }
+        @Suite
+        struct BOMStripping {
+            @Test
+            func `strip BOM From Prefixed Buffer`() {
+                let bom: [UInt8] = [0xEF, 0xBB, 0xBF]
+                let content: [UInt8] = [0x41, 0x42, 0x43]  // "ABC"
+                let input = bom + content
+                let result = Source.Loader._stripBOM(from: input)
+                #expect(result == content)
+            }
 
-    // MARK: - BOM Stripping
+            @Test
+            func `preserve Buffer Without BOM`() {
+                let content: [UInt8] = [0x41, 0x42, 0x43]  // "ABC"
+                let result = Source.Loader._stripBOM(from: content)
+                #expect(result == content)
+            }
 
-    @Suite
-    struct BOMStripping {
-        @Test
-        func `strip BOM From Prefixed Buffer`() {
-            let bom: [UInt8] = [0xEF, 0xBB, 0xBF]
-            let content: [UInt8] = [0x41, 0x42, 0x43]  // "ABC"
-            let input = bom + content
-            let result = Source.Loader._stripBOM(from: input)
-            #expect(result == content)
-        }
+            @Test
+            func `preserve Empty Buffer`() {
+                let result = Source.Loader._stripBOM(from: [])
+                #expect(result.isEmpty)
+            }
 
-        @Test
-        func `preserve Buffer Without BOM`() {
-            let content: [UInt8] = [0x41, 0x42, 0x43]  // "ABC"
-            let result = Source.Loader._stripBOM(from: content)
-            #expect(result == content)
-        }
+            @Test
+            func `preserve Partial BOM Prefix`() {
+                // Only 2 of 3 BOM bytes — should NOT strip.
+                let content: [UInt8] = [0xEF, 0xBB, 0x41]
+                let result = Source.Loader._stripBOM(from: content)
+                #expect(result == content)
+            }
 
-        @Test
-        func `preserve Empty Buffer`() {
-            let result = Source.Loader._stripBOM(from: [])
-            #expect(result.isEmpty)
-        }
-
-        @Test
-        func `preserve Partial BOM Prefix`() {
-            // Only 2 of 3 BOM bytes — should NOT strip.
-            let content: [UInt8] = [0xEF, 0xBB, 0x41]
-            let result = Source.Loader._stripBOM(from: content)
-            #expect(result == content)
-        }
-
-        @Test
-        func `strip BOM From BOM Only Buffer`() {
-            let bom: [UInt8] = [0xEF, 0xBB, 0xBF]
-            let result = Source.Loader._stripBOM(from: bom)
-            #expect(result.isEmpty)
+            @Test
+            func `strip BOM From BOM Only Buffer`() {
+                let bom: [UInt8] = [0xEF, 0xBB, 0xBF]
+                let result = Source.Loader._stripBOM(from: bom)
+                #expect(result.isEmpty)
+            }
         }
     }
+}
 
-    // MARK: - Cache
+// MARK: - Cache
 
+extension Source.Cache {
     @Suite
-    struct CacheTests {
+    struct Test {
         @Test
         func `empty Cache Has Zero Count`() {
             let cache = Source.Cache()
@@ -137,11 +141,13 @@ struct SourceLoaderTests {
             #expect(cache.count == 0)
         }
     }
+}
 
-    // MARK: - Error
+// MARK: - Error
 
+extension Source.Error {
     @Suite
-    struct ErrorTests {
+    struct Test {
         @Test
         func `error Descriptions`() {
             let notFound = Source.Error.fileNotFound(path: "/some/path")
