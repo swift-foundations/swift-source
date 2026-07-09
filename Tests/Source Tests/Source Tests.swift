@@ -15,14 +15,14 @@ struct SourceLoaderTests {
     @Suite
     struct Loader {
         @Test
-        func loadNonexistentFileThrowsFileNotFound() throws {
+        func `load Nonexistent File Throws File Not Found`() throws {
             #expect(throws: Source.Error.fileNotFound(path: "/nonexistent/path/to/file.swift")) {
                 try Source.Loader.load(contentsOf: "/nonexistent/path/to/file.swift")
             }
         }
 
         @Test
-        func loadExistingFileReturnsBytes() throws {
+        func `load Existing File Returns Bytes`() throws {
             // /usr/bin/true exists on all POSIX systems and is a small binary.
             // We just verify it loads without error and returns non-empty data.
             let bytes = try Source.Loader.load(contentsOf: "/usr/bin/true")
@@ -30,7 +30,7 @@ struct SourceLoaderTests {
         }
 
         @Test
-        func loadEmptyFileReturnsEmptyArray() throws {
+        func `load Empty File Returns Empty Array`() throws {
             // /dev/null reads as empty.
             let bytes = try Source.Loader.load(contentsOf: "/dev/null")
             #expect(bytes.isEmpty)
@@ -42,7 +42,7 @@ struct SourceLoaderTests {
     @Suite
     struct BOMStripping {
         @Test
-        func stripBOMFromPrefixedBuffer() {
+        func `strip BOM From Prefixed Buffer`() {
             let bom: [UInt8] = [0xEF, 0xBB, 0xBF]
             let content: [UInt8] = [0x41, 0x42, 0x43]  // "ABC"
             let input = bom + content
@@ -51,20 +51,20 @@ struct SourceLoaderTests {
         }
 
         @Test
-        func preserveBufferWithoutBOM() {
+        func `preserve Buffer Without BOM`() {
             let content: [UInt8] = [0x41, 0x42, 0x43]  // "ABC"
             let result = Source.Loader._stripBOM(from: content)
             #expect(result == content)
         }
 
         @Test
-        func preserveEmptyBuffer() {
+        func `preserve Empty Buffer`() {
             let result = Source.Loader._stripBOM(from: [])
             #expect(result.isEmpty)
         }
 
         @Test
-        func preservePartialBOMPrefix() {
+        func `preserve Partial BOM Prefix`() {
             // Only 2 of 3 BOM bytes — should NOT strip.
             let content: [UInt8] = [0xEF, 0xBB, 0x41]
             let result = Source.Loader._stripBOM(from: content)
@@ -72,7 +72,7 @@ struct SourceLoaderTests {
         }
 
         @Test
-        func stripBOMFromBOMOnlyBuffer() {
+        func `strip BOM From BOM Only Buffer`() {
             let bom: [UInt8] = [0xEF, 0xBB, 0xBF]
             let result = Source.Loader._stripBOM(from: bom)
             #expect(result.isEmpty)
@@ -84,13 +84,13 @@ struct SourceLoaderTests {
     @Suite
     struct CacheTests {
         @Test
-        func emptyCacheHasZeroCount() {
+        func `empty Cache Has Zero Count`() {
             let cache = Source.Cache()
             #expect(cache.count == 0)
         }
 
         @Test
-        func loadCachesResult() throws {
+        func `load Caches Result`() throws {
             var cache = Source.Cache()
             let first = try cache.load(contentsOf: "/dev/null")
             #expect(cache.count == 1)
@@ -102,7 +102,7 @@ struct SourceLoaderTests {
         }
 
         @Test
-        func removeEvictsEntry() throws {
+        func `remove Evicts Entry`() throws {
             var cache = Source.Cache()
             _ = try cache.load(contentsOf: "/dev/null")
             #expect(cache.count == 1)
@@ -114,14 +114,14 @@ struct SourceLoaderTests {
         }
 
         @Test
-        func removeNonexistentPathReturnsNil() {
+        func `remove Nonexistent Path Returns Nil`() {
             var cache = Source.Cache()
             let removed = cache.remove(path: "/does/not/exist")
             #expect(removed == nil)
         }
 
         @Test
-        func removeAllClearsCache() throws {
+        func `remove All Clears Cache`() throws {
             var cache = Source.Cache()
             _ = try cache.load(contentsOf: "/dev/null")
             cache.removeAll()
@@ -129,7 +129,7 @@ struct SourceLoaderTests {
         }
 
         @Test
-        func cachePassesThroughLoadErrors() {
+        func `cache Passes Through Load Errors`() {
             var cache = Source.Cache()
             #expect(throws: Source.Error.fileNotFound(path: "/nonexistent")) {
                 try cache.load(contentsOf: "/nonexistent")
@@ -143,7 +143,7 @@ struct SourceLoaderTests {
     @Suite
     struct ErrorTests {
         @Test
-        func errorDescriptions() {
+        func `error Descriptions`() {
             let notFound = Source.Error.fileNotFound(path: "/some/path")
             #expect(notFound.description.contains("/some/path"))
 
@@ -155,7 +155,7 @@ struct SourceLoaderTests {
         }
 
         @Test
-        func errorEquality() {
+        func `error Equality`() {
             let a = Source.Error.fileNotFound(path: "/a")
             let b = Source.Error.fileNotFound(path: "/a")
             let c = Source.Error.fileNotFound(path: "/b")
