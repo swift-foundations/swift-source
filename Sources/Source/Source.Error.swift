@@ -12,11 +12,20 @@ extension Source {
     /// ## Cases
     ///
     /// - ``fileNotFound``: The file does not exist at the given path.
+    /// - ``statFailed``: The file was opened but its size could not be determined.
     /// - ``readFailed``: The file was opened but reading failed.
     /// - ``openFailed``: The file could not be opened (permissions, etc.).
     public enum Error: Swift.Error, Sendable, Equatable {
         /// The file does not exist at the specified path.
         case fileNotFound(path: Swift.String)
+
+        /// The file's metadata could not be determined after a successful open.
+        ///
+        /// - Parameters:
+        ///   - path: The file path whose `fstat` call failed.
+        ///   - errno: The POSIX errno value (`EOVERFLOW` if the reported size
+        ///     does not fit in `Int`).
+        case statFailed(path: Swift.String, errno: Int32)
 
         /// The file could not be opened.
         ///
@@ -41,6 +50,9 @@ extension Source.Error: CustomStringConvertible {
         switch self {
         case .fileNotFound(let path):
             return "Source file not found: \(path)"
+
+        case .statFailed(let path, let errno):
+            return "Failed to stat source file '\(path)': errno \(errno)"
 
         case .openFailed(let path, let errno):
             return "Failed to open source file '\(path)': errno \(errno)"

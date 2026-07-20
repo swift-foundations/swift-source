@@ -91,28 +91,68 @@ extension Source.Loader {
             var status = stat()
             let fstatResult = fstat(fd, &status)
             guard fstatResult == 0 else {
-                throw .readFailed(path: path, errno: errno)
+                throw .statFailed(path: path, errno: errno)
             }
 
-            let fileSize = Int(status.st_size)
+            // `st_size` is `off_t` (a 64-bit signed integer on all supported
+            // platforms); on 64-bit targets the conversion to `Int` is lossless.
+            // Guard anyway so a hypothetical 32-bit target cannot trap here.
+            guard let fileSize = Int(exactly: status.st_size), fileSize >= 0 else {
+                throw .statFailed(path: path, errno: EOVERFLOW)
+            }
 
             // Empty file — return immediately.
             if fileSize == 0 {
                 return []
             }
 
-            // Allocate buffer and read entire file.
-            var buffer = [UInt8](repeating: 0, count: fileSize)
-            let bytesRead = buffer.withUnsafeMutableBufferPointer { pointer in
-                read(fd, pointer.baseAddress, fileSize)
-            }
-
-            guard bytesRead == fileSize else {
-                throw .readFailed(path: path, errno: errno)
-            }
+            // Read entire file contents.
+            let buffer = try _readFully(fd: fd, count: fileSize, path: path)
 
             // Strip UTF-8 BOM if present.
             return _stripBOM(from: buffer)
+        }
+
+        /// Reads up to `count` bytes from `fd`, accumulating across multiple
+        /// `read(2)` calls.
+        ///
+        /// A single `read(2)` may legally return fewer bytes than requested
+        /// (pipes, network filesystems, signal interruption). This loop:
+        /// - accumulates until `count` bytes are read or EOF is reached,
+        /// - retries reads interrupted by signals (`EINTR`),
+        /// - captures `errno` only when `read` actually returns `-1`,
+        /// - on early EOF returns the bytes actually read (the file may have
+        ///   been truncated between `fstat` and `read`).
+        @usableFromInline
+        internal static func _readFully(
+            fd: Int32,
+            count: Int,
+            path: Swift.String
+        ) throws(Source.Error) -> [UInt8] {
+            var buffer = [UInt8](repeating: 0, count: count)
+            var totalRead = 0
+
+            while totalRead < count {
+                let bytesRead = buffer.withUnsafeMutableBufferPointer { pointer in
+                    read(fd, pointer.baseAddress! + totalRead, count - totalRead)
+                }
+
+                if bytesRead > 0 {
+                    totalRead += bytesRead
+                } else if bytesRead == 0 {
+                    // Early EOF — return the bytes actually read.
+                    buffer.removeLast(count - totalRead)
+                    return buffer
+                } else {
+                    let error = errno
+                    if error == EINTR {
+                        continue
+                    }
+                    throw .readFailed(path: path, errno: error)
+                }
+            }
+
+            return buffer
         }
 
         /// Strips the UTF-8 BOM (0xEF, 0xBB, 0xBF) from the start of the buffer.
