@@ -49,15 +49,16 @@ extension Source.Loader {
     ///
     /// - Parameter path: Absolute or relative file system path.
     /// - Returns: The file contents as raw UTF-8 bytes (BOM-stripped).
-    /// - Throws: `Source.Error` on I/O failure.
+    /// - Throws: `Source.Error` on I/O failure, or
+    ///   `Source.Error.unsupportedPlatform` on platforms without a POSIX I/O layer.
     public static func load(
         contentsOf path: Swift.String
     ) throws(Source.Error) -> [UInt8] {
         #if canImport(Darwin) || canImport(Glibc) || canImport(Musl)
             return try _loadPOSIX(contentsOf: path)
         #else
-            // Windows / other platforms: not yet supported
-            fatalError("Source.Loader is not implemented for this platform")
+            // Windows / other platforms: not yet supported.
+            throw .unsupportedPlatform
         #endif
     }
 }

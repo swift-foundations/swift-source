@@ -161,6 +161,16 @@ extension Source.Error {
         }
 
         @Test
+        func `unsupported platform is a representable typed failure`() {
+            // The non-POSIX branch of Source.Loader.load(contentsOf:) throws this
+            // case instead of terminating the process; the case must exist,
+            // describe itself, and compare equal to itself on every platform.
+            let unsupported = Source.Error.unsupportedPlatform
+            #expect(unsupported.description.contains("not implemented"))
+            #expect(unsupported == .unsupportedPlatform)
+        }
+
+        @Test
         func `error Equality`() {
             let a = Source.Error.fileNotFound(path: "/a")
             let b = Source.Error.fileNotFound(path: "/a")

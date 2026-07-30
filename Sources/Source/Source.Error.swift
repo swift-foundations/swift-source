@@ -15,7 +15,14 @@ extension Source {
     /// - ``statFailed``: The file was opened but its size could not be determined.
     /// - ``readFailed``: The file was opened but reading failed.
     /// - ``openFailed``: The file could not be opened (permissions, etc.).
+    /// - ``unsupportedPlatform``: The current platform has no loader implementation.
     public enum Error: Swift.Error, Sendable, Equatable {
+        /// The current platform has no `Source.Loader` implementation.
+        ///
+        /// Thrown on platforms without a POSIX I/O layer (for example Windows),
+        /// where `Source.Loader.load(contentsOf:)` cannot read files.
+        case unsupportedPlatform
+
         /// The file does not exist at the specified path.
         case fileNotFound(path: Swift.String)
 
@@ -48,6 +55,9 @@ extension Source {
 extension Source.Error: CustomStringConvertible {
     public var description: Swift.String {
         switch self {
+        case .unsupportedPlatform:
+            return "Source.Loader is not implemented for this platform"
+
         case .fileNotFound(let path):
             return "Source file not found: \(path)"
 
