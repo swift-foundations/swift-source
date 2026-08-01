@@ -41,7 +41,7 @@ extension Source.Loader {
         // MARK: - BOM Stripping
 
         @Suite
-        struct BOMStripping {
+        struct `BOM Stripping` {
             @Test
             func `strip BOM From Prefixed Buffer`() {
                 let bom: [UInt8] = [0xEF, 0xBB, 0xBF]
