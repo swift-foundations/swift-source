@@ -17,7 +17,8 @@ extension Source.Loader {
         struct Loader {
             @Test
             func `load Nonexistent File Throws File Not Found`() throws {
-                #expect(throws: Source.Error.fileNotFound(path: "/nonexistent/path/to/file.swift")) {
+                #expect(throws: Source.Error.fileNotFound(path: "/nonexistent/path/to/file.swift"))
+                {
                     try Source.Loader.load(contentsOf: "/nonexistent/path/to/file.swift")
                 }
             }
