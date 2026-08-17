@@ -156,20 +156,30 @@ extension Source.Loader {
             return buffer
         }
 
-        /// Strips the UTF-8 BOM (0xEF, 0xBB, 0xBF) from the start of the buffer.
-        ///
-        /// The BOM is a legacy marker with no semantic meaning in UTF-8. Removing it
-        /// ensures byte offsets in the lexer correspond directly to source positions.
-        @usableFromInline
-        internal static func _stripBOM(from buffer: [UInt8]) -> [UInt8] {
-            if buffer.count >= 3,
-                buffer[0] == 0xEF,
-                buffer[1] == 0xBB,
-                buffer[2] == 0xBF
-            {
-                return Array(buffer.dropFirst(3))
-            }
-            return buffer
-        }
     }
 #endif
+
+// MARK: - BOM Handling
+
+extension Source.Loader {
+    /// Strips the UTF-8 BOM (0xEF, 0xBB, 0xBF) from the start of the buffer.
+    ///
+    /// The BOM is a legacy marker with no semantic meaning in UTF-8. Removing it
+    /// ensures byte offsets in the lexer correspond directly to source positions.
+    ///
+    /// This is byte manipulation with no system call in it, so it sits outside
+    /// the POSIX block: it compiles — and is testable — on every platform,
+    /// including the ones where `load(contentsOf:)` throws
+    /// `unsupportedPlatform`.
+    @usableFromInline
+    internal static func _stripBOM(from buffer: [UInt8]) -> [UInt8] {
+        if buffer.count >= 3,
+            buffer[0] == 0xEF,
+            buffer[1] == 0xBB,
+            buffer[2] == 0xBF
+        {
+            return Array(buffer.dropFirst(3))
+        }
+        return buffer
+    }
+}

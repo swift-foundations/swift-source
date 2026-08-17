@@ -12,32 +12,57 @@ extension Source.Loader {
     struct Test {
 
         // MARK: - Loader
+        //
+        // These cases name POSIX paths (`/usr/bin/true`, `/dev/null`) and
+        // expect POSIX outcomes, so they describe `load(contentsOf:)` only
+        // where it has a POSIX layer to call. Elsewhere the documented
+        // contract is a different one — `unsupportedPlatform` — and it is
+        // asserted directly rather than left unexercised.
 
-        @Suite
-        struct Loader {
-            @Test
-            func `load Nonexistent File Throws File Not Found`() throws {
-                #expect(throws: Source.Error.fileNotFound(path: "/nonexistent/path/to/file.swift"))
-                {
-                    try Source.Loader.load(contentsOf: "/nonexistent/path/to/file.swift")
+        #if canImport(Darwin) || canImport(Glibc) || canImport(Musl)
+
+            @Suite
+            struct Loader {
+                @Test
+                func `load Nonexistent File Throws File Not Found`() throws {
+                    #expect(
+                        throws: Source.Error.fileNotFound(
+                            path: "/nonexistent/path/to/file.swift"
+                        )
+                    ) {
+                        try Source.Loader.load(contentsOf: "/nonexistent/path/to/file.swift")
+                    }
+                }
+
+                @Test
+                func `load Existing File Returns Bytes`() throws {
+                    // /usr/bin/true exists on all POSIX systems and is a small binary.
+                    // We just verify it loads without error and returns non-empty data.
+                    let bytes = try Source.Loader.load(contentsOf: "/usr/bin/true")
+                    #expect(!bytes.isEmpty)
+                }
+
+                @Test
+                func `load Empty File Returns Empty Array`() throws {
+                    // /dev/null reads as empty.
+                    let bytes = try Source.Loader.load(contentsOf: "/dev/null")
+                    #expect(bytes.isEmpty)
                 }
             }
 
-            @Test
-            func `load Existing File Returns Bytes`() throws {
-                // /usr/bin/true exists on all POSIX systems and is a small binary.
-                // We just verify it loads without error and returns non-empty data.
-                let bytes = try Source.Loader.load(contentsOf: "/usr/bin/true")
-                #expect(!bytes.isEmpty)
+        #else
+
+            @Suite
+            struct Loader {
+                @Test
+                func `load reports the platform as unsupported`() throws {
+                    #expect(throws: Source.Error.unsupportedPlatform) {
+                        try Source.Loader.load(contentsOf: "any/path.swift")
+                    }
+                }
             }
 
-            @Test
-            func `load Empty File Returns Empty Array`() throws {
-                // /dev/null reads as empty.
-                let bytes = try Source.Loader.load(contentsOf: "/dev/null")
-                #expect(bytes.isEmpty)
-            }
-        }
+        #endif
 
         // MARK: - BOM Stripping
 
