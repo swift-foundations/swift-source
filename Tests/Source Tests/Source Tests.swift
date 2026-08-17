@@ -120,52 +120,72 @@ extension Source.Cache {
         }
 
         @Test
-        func `load Caches Result`() throws {
-            var cache = Source.Cache()
-            let first = try cache.load(contentsOf: "/dev/null")
-            #expect(cache.count == 1)
-            #expect(cache.contains(path: "/dev/null"))
-
-            let second = try cache.load(contentsOf: "/dev/null")
-            #expect(first == second)
-            #expect(cache.count == 1)  // No additional entry.
-        }
-
-        @Test
-        func `remove Evicts Entry`() throws {
-            var cache = Source.Cache()
-            _ = try cache.load(contentsOf: "/dev/null")
-            #expect(cache.count == 1)
-
-            let removed = cache.remove(path: "/dev/null")
-            #expect(removed != nil)
-            #expect(cache.count == 0)
-            #expect(!cache.contains(path: "/dev/null"))
-        }
-
-        @Test
         func `remove Nonexistent Path Returns Nil`() {
             var cache = Source.Cache()
             let removed = cache.remove(path: "/does/not/exist")
             #expect(removed == nil)
         }
 
-        @Test
-        func `remove All Clears Cache`() throws {
-            var cache = Source.Cache()
-            _ = try cache.load(contentsOf: "/dev/null")
-            cache.removeAll()
-            #expect(cache.count == 0)
-        }
+        // The cases below reach the loader, so they hold only where the
+        // loader has a POSIX layer to call and they name POSIX paths.
+        // Elsewhere the cache passes the loader's `unsupportedPlatform`
+        // through, and that is what is asserted instead.
 
-        @Test
-        func `cache Passes Through Load Errors`() {
-            var cache = Source.Cache()
-            #expect(throws: Source.Error.fileNotFound(path: "/nonexistent")) {
-                try cache.load(contentsOf: "/nonexistent")
+        #if canImport(Darwin) || canImport(Glibc) || canImport(Musl)
+
+            @Test
+            func `load Caches Result`() throws {
+                var cache = Source.Cache()
+                let first = try cache.load(contentsOf: "/dev/null")
+                #expect(cache.count == 1)
+                #expect(cache.contains(path: "/dev/null"))
+
+                let second = try cache.load(contentsOf: "/dev/null")
+                #expect(first == second)
+                #expect(cache.count == 1)  // No additional entry.
             }
-            #expect(cache.count == 0)
-        }
+
+            @Test
+            func `remove Evicts Entry`() throws {
+                var cache = Source.Cache()
+                _ = try cache.load(contentsOf: "/dev/null")
+                #expect(cache.count == 1)
+
+                let removed = cache.remove(path: "/dev/null")
+                #expect(removed != nil)
+                #expect(cache.count == 0)
+                #expect(!cache.contains(path: "/dev/null"))
+            }
+
+            @Test
+            func `remove All Clears Cache`() throws {
+                var cache = Source.Cache()
+                _ = try cache.load(contentsOf: "/dev/null")
+                cache.removeAll()
+                #expect(cache.count == 0)
+            }
+
+            @Test
+            func `cache Passes Through Load Errors`() {
+                var cache = Source.Cache()
+                #expect(throws: Source.Error.fileNotFound(path: "/nonexistent")) {
+                    try cache.load(contentsOf: "/nonexistent")
+                }
+                #expect(cache.count == 0)
+            }
+
+        #else
+
+            @Test
+            func `cache Passes Through The Unsupported Platform`() {
+                var cache = Source.Cache()
+                #expect(throws: Source.Error.unsupportedPlatform) {
+                    try cache.load(contentsOf: "any/path.swift")
+                }
+                #expect(cache.count == 0)
+            }
+
+        #endif
     }
 }
 
