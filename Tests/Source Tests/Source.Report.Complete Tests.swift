@@ -49,6 +49,28 @@ func `complete report proves exact subjects engines and artifact predicates`() t
     )
 
     #expect(try Source.Report.Complete(report, expected: commitment).report.subjects == [subject])
+    #expect(Source.Report.Status(report, expected: commitment) == .clean)
+}
+
+@Test
+func `report status includes artifact predicate findings`() {
+    let evidence = Source.Artifact.Evidence(
+        subject: subject.identity,
+        artifact: subject.artifacts[1],
+        predicate: exactConfiguration,
+        verdict: .findings([.init(code: "digest", detail: "configuration differs")])
+    )
+    let report = Source.Report(
+        scope: .workspace,
+        profile: .init("profile"),
+        commitment: commitment,
+        subjects: [subject],
+        references: [],
+        measurements: [measurement],
+        artifactEvidence: [evidence]
+    )
+
+    #expect(Source.Report.Status(report, expected: commitment) == .findings)
 }
 
 @Test
