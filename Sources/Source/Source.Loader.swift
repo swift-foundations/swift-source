@@ -74,7 +74,7 @@ extension Source.Loader {
         ) throws(Source.Error) -> [UInt8] {
             // Open the file read-only.
             let fd = path.withCString { cPath in
-                open(cPath, O_RDONLY)
+                unsafe open(cPath, O_RDONLY)
             }
 
             guard fd >= 0 else {
@@ -90,7 +90,7 @@ extension Source.Loader {
 
             // Determine file size via fstat.
             var status = stat()
-            let fstatResult = fstat(fd, &status)
+            let fstatResult = unsafe fstat(fd, &status)
             guard fstatResult == 0 else {
                 throw .statFailed(path: path, errno: errno)
             }
@@ -135,7 +135,7 @@ extension Source.Loader {
 
             while totalRead < count {
                 let bytesRead = buffer.withUnsafeMutableBufferPointer { pointer in
-                    read(fd, pointer.baseAddress! + totalRead, count - totalRead)
+                    unsafe read(fd, pointer.baseAddress! + totalRead, count - totalRead)
                 }
 
                 if bytesRead > 0 {
