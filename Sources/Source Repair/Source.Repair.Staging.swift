@@ -8,12 +8,14 @@ extension Source.Repair {
     public let operations: [Operation]
     public let refusals: [Refusal]
     private let engines: Swift.Set<Source.Engine.ID>
+    private let selectedRules: Swift.Set<Source.Rule.ID>?
 
     public init(
       subject: Source.Subject,
       profile: Source.Profile.Digest,
       sources: Source.SourceSet.Digest,
       measurements: [Source.Measurement],
+      rules selectedRules: Swift.Set<Source.Rule.ID>?,
       fileSystem: FileSystem
     ) throws(Source.Reason) {
       var staged: [Swift.String: Staged.File] = [:]
@@ -47,7 +49,10 @@ extension Source.Repair {
         guard measurement.subject == subject else {
           throw .init(code: "stale-subject", detail: measurement.subject.identity)
         }
-        if !measurement.suppressions.isEmpty {
+        let suppressions = measurement.suppressions.filter {
+          selectedRules?.contains($0.rule) ?? true
+        }
+        if !suppressions.isEmpty {
           refusals.append(.init(.init(code: "suppression", detail: measurement.engine.token)))
         }
         switch measurement.verdict {
@@ -55,13 +60,15 @@ extension Source.Repair {
         case .notRequested:
           refusals.append(.init(.init(code: "not-requested", detail: measurement.engine.token)))
         case .clean:
-          guard measurement.repairs.isEmpty else {
+          guard measurement.repairs.filter({ selectedRules?.contains($0.rule) ?? true }).isEmpty
+          else {
             refusals.append(.init(.init(code: "non-idempotent", detail: measurement.engine.token)))
             continue
           }
         case .findings: break
         }
-        for evidence in measurement.repairs {
+        for evidence in measurement.repairs
+        where selectedRules?.contains(evidence.rule) ?? true {
           switch evidence.disposition {
           case .unchanged:
             refusals.append(.init(.init(code: "repair-unchanged", detail: evidence.rule.token)))
@@ -87,6 +94,7 @@ extension Source.Repair {
       self.operations = operations
       self.refusals = refusals
       self.engines = engines
+      self.selectedRules = selectedRules
     }
 
     public func finish(remeasured: [Source.Measurement]) -> Plan {
@@ -100,26 +108,39 @@ extension Source.Repair {
           refusals.append(.init(.init(code: "stale-subject", detail: measurement.subject.identity)))
           continue
         }
-        guard measurement.repairs.isEmpty else {
+        guard measurement.repairs.filter({ selectedRules?.contains($0.rule) ?? true }).isEmpty
+        else {
           refusals.append(.init(.init(code: "non-idempotent", detail: measurement.engine.token)))
           continue
         }
         switch measurement.verdict {
         case .clean:
-          let complete =
-            !measurement.files.isEmpty
-            && !measurement.activeRules.isEmpty
-            && !measurement.applicableRules.isEmpty
-            && measurement.observations.allSatisfy {
-              if case .measured = $0.coverage { true } else { false }
+          let required = Swift.Set(
+            selectedRules?.filter { $0.engine == measurement.engine }
+              ?? measurement.activeRules
+          )
+          let observations = measurement.observations.filter {
+            required.contains($0.rule)
+          }
+          let complete = !measurement.files.isEmpty
+            && !required.isEmpty
+            && required.isSubset(of: Swift.Set(measurement.activeRules))
+            && required.isSubset(of: Swift.Set(measurement.applicableRules))
+            && observations.count == measurement.files.count * required.count
+            && observations.allSatisfy {
+              $0.applicable && {
+                if case .measured = $0.coverage { true } else { false }
+              }()
             }
           if !complete {
             refusals.append(
               .init(.init(code: "incomplete-remeasurement", detail: measurement.engine.token)))
           }
-        case .findings:
-          refusals.append(
-            .init(.init(code: "postmeasurement-findings", detail: measurement.engine.token)))
+        case .findings(let findings):
+          if selectedRules == nil || findings.contains(where: { selectedRules?.contains($0.rule) == true }) {
+            refusals.append(
+              .init(.init(code: "postmeasurement-findings", detail: measurement.engine.token)))
+          }
         case .unmeasured(let reasons): refusals.append(contentsOf: reasons.map(Refusal.init))
         case .notRequested:
           refusals.append(.init(.init(code: "not-requested", detail: measurement.engine.token)))

@@ -202,6 +202,7 @@ func `repair stages remeasures and publishes bound bytes`() throws {
     profile: profile,
     sources: sources,
     measurements: [measured],
+    rules: nil,
     fileSystem: files
   )
   #expect(state.withLock { $0["A.swift"] } == original)
