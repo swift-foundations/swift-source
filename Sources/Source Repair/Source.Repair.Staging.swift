@@ -127,10 +127,8 @@ extension Source.Repair {
             && required.isSubset(of: Swift.Set(measurement.activeRules))
             && required.isSubset(of: Swift.Set(measurement.applicableRules))
             && observations.count == measurement.files.count * required.count
-            && observations.allSatisfy {
-              $0.applicable && {
-                if case .measured = $0.coverage { true } else { false }
-              }()
+            && observations.allSatisfy { observation in
+              observation.applicable && observation.coverage == .measured
             }
           if !complete {
             refusals.append(
