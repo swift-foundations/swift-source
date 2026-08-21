@@ -66,6 +66,8 @@ func `report status includes artifact predicate findings`() {
         subject: subject.identity,
         artifact: subject.artifacts[1],
         predicate: exactConfiguration,
+        actual: .init(digest: .init("different"), schema: .init("1")),
+        expected: .init(digest: .init("configuration"), schema: .init("1")),
         verdict: .findings([.init(code: "digest", detail: "configuration differs")])
     )
     let report = Source.Report(
@@ -190,5 +192,7 @@ private let configurationEvidence = Source.Artifact.Evidence(
     subject: subject.identity,
     artifact: subject.artifacts[1],
     predicate: exactConfiguration,
+    actual: .init(digest: .init("configuration"), schema: .init("1")),
+    expected: .init(digest: .init("configuration"), schema: .init("1")),
     verdict: .clean
 )

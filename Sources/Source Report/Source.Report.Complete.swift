@@ -131,6 +131,18 @@ extension Source.Report {
                         if case .unmeasured = measured.verdict {
                             throw .artifacts(subject.identity)
                         }
+                        switch measured.verdict {
+                        case .clean:
+                            guard measured.actual == measured.expected else {
+                                throw .artifacts(subject.identity)
+                            }
+                        case .findings:
+                            guard measured.actual != measured.expected else {
+                                throw .artifacts(subject.identity)
+                            }
+                        case .unmeasured:
+                            break
+                        }
                         if case .findings(let reasons) = measured.verdict, reasons.isEmpty {
                             throw .artifacts(subject.identity)
                         }
