@@ -16,6 +16,9 @@ extension Source.Rule {
             guard let object = json.dictionary else {
                 throw .typeMismatch(expected: "object", got: "non-object")
             }
+            guard Set(object.keys) == ["engine", "token"] else {
+                throw .typeMismatch(expected: "source rule keys", got: "foreign keys")
+            }
             guard let engine = object["engine"] else { throw .missingKey("engine") }
             guard let token = object["token"] else { throw .missingKey("token") }
             return try Self(

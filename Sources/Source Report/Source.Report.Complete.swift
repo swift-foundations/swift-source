@@ -68,6 +68,15 @@ extension Source.Report {
                 guard !paths.isEmpty, Set(paths).count == paths.count else {
                     throw .artifacts(subject.identity)
                 }
+                for artifact in subject.artifacts {
+                    guard case .generated(let binding) = artifact.provenance else { continue }
+                    guard !binding.owner.identity.isEmpty,
+                        subjectIDs.contains(binding.owner.identity),
+                        !binding.input.isEmpty,
+                        !binding.revision.isEmpty,
+                        !binding.digest.isEmpty
+                    else { throw .artifacts(subject.identity) }
+                }
                 let measurements = report.measurements.filter {
                     $0.subject.identity == subject.identity
                 }

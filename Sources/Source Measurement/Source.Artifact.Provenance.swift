@@ -1,14 +1,14 @@
 extension Source.Artifact {
     public enum Provenance: Hashable, Sendable, JSON.Serializable {
         case authored
-        case generated(owner: Swift.String)
+        case generated(Generated)
 
         public static func serialize(_ value: Self) -> JSON {
             switch value {
             case .authored:
                 ["status": "authored".json]
-            case .generated(let owner):
-                ["status": "generated".json, "owner": owner.json]
+            case .generated(let binding):
+                ["status": "generated".json, "binding": binding.json]
             }
         }
 
@@ -19,13 +19,17 @@ extension Source.Artifact {
             guard let status = object["status"] else { throw .missingKey("status") }
             switch try Swift.String(json: status) {
             case "authored":
-                guard object["owner"] == nil else {
-                    throw .typeMismatch(expected: "authored provenance", got: "owner")
+                guard Set(object.keys) == ["status"] else {
+                    throw .typeMismatch(expected: "authored provenance", got: "foreign keys")
                 }
                 return .authored
             case "generated":
-                guard let owner = object["owner"] else { throw .missingKey("owner") }
-                return .generated(owner: try Swift.String(json: owner))
+                guard Set(object.keys) == ["status", "binding"],
+                    let binding = object["binding"]
+                else {
+                    throw .typeMismatch(expected: "generated provenance", got: "foreign keys")
+                }
+                return try .generated(Generated(json: binding))
             default:
                 throw .typeMismatch(expected: "authored or generated", got: "other status")
             }

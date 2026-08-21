@@ -11,6 +11,9 @@ extension Source.Subject: JSON.Serializable {
         guard let object = json.dictionary else {
             throw .typeMismatch(expected: "object", got: "non-object")
         }
+        guard Set(object.keys) == ["identity", "root", "artifacts"] else {
+            throw .typeMismatch(expected: "source subject keys", got: "foreign keys")
+        }
         guard let identity = object["identity"] else { throw .missingKey("identity") }
         guard let root = object["root"] else { throw .missingKey("root") }
         guard let artifacts = object["artifacts"] else { throw .missingKey("artifacts") }

@@ -48,6 +48,13 @@ extension Source.Profile {
             guard let object = json.dictionary else {
                 throw .typeMismatch(expected: "object", got: "non-object")
             }
+            let expected: Set<Swift.String> = [
+                "id", "executable", "tool", "configuration", "configurationPath", "environment",
+                "artifactKinds", "rules",
+            ]
+            guard Set(object.keys) == expected else {
+                throw .typeMismatch(expected: "source profile engine keys", got: "foreign keys")
+            }
             guard let id = object["id"] else { throw .missingKey("id") }
             guard let executable = object["executable"] else { throw .missingKey("executable") }
             guard let tool = object["tool"] else { throw .missingKey("tool") }

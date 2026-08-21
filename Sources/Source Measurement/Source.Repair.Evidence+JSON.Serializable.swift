@@ -11,6 +11,9 @@ extension Source.Repair.Evidence: JSON.Serializable {
         guard let object = json.dictionary else {
             throw .typeMismatch(expected: "repair evidence object", got: "other")
         }
+        guard Set(object.keys) == ["file", "rule", "disposition"] else {
+            throw .typeMismatch(expected: "repair evidence keys", got: "foreign keys")
+        }
         func required(_ key: Swift.String) throws(JSON.Error) -> JSON {
             guard let value = object[key] else { throw .missingKey(key) }
             return value

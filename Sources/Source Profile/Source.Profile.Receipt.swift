@@ -16,6 +16,9 @@ extension Source.Profile {
             guard let object = json.dictionary else {
                 throw .typeMismatch(expected: "object", got: "non-object")
             }
+            guard Set(object.keys) == ["profile", "tools"] else {
+                throw .typeMismatch(expected: "source receipt keys", got: "foreign keys")
+            }
             guard let profile = object["profile"] else { throw .missingKey("profile") }
             guard let tools = object["tools"] else { throw .missingKey("tools") }
             return try Self(profile: Digest(json: profile), tools: [Engine](json: tools))

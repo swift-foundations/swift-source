@@ -1,5 +1,7 @@
 extension Source {
     public struct Profile: Equatable, Sendable, JSON.Serializable {
+        public static let schema = 2
+
         public let revision: Swift.String
         public let engines: [Engine]
 
@@ -14,12 +16,22 @@ extension Source {
         }
 
         public static func serialize(_ value: Self) -> JSON {
-            ["revision": value.revision.json, "engines": value.engines.json]
+            [
+                "schema": schema.json,
+                "revision": value.revision.json,
+                "engines": value.engines.json,
+            ]
         }
 
         public static func deserialize(_ json: JSON) throws(JSON.Error) -> Self {
             guard let object = json.dictionary else {
                 throw .typeMismatch(expected: "object", got: "non-object")
+            }
+            guard Set(object.keys) == ["schema", "revision", "engines"] else {
+                throw .typeMismatch(expected: "source profile keys", got: "foreign keys")
+            }
+            guard let schema = object["schema"], try Swift.Int(json: schema) == Self.schema else {
+                throw .typeMismatch(expected: "source profile schema 2", got: "other schema")
             }
             guard let revision = object["revision"] else { throw .missingKey("revision") }
             guard let engines = object["engines"] else { throw .missingKey("engines") }

@@ -26,6 +26,9 @@ extension Source {
             guard let object = json.dictionary else {
                 throw .typeMismatch(expected: "object", got: "non-object")
             }
+            guard Set(object.keys) == ["path", "kind", "provenance"] else {
+                throw .typeMismatch(expected: "source artifact keys", got: "foreign keys")
+            }
             guard let path = object["path"] else { throw .missingKey("path") }
             guard let kind = object["kind"] else { throw .missingKey("kind") }
             guard let provenance = object["provenance"] else {

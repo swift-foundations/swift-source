@@ -16,6 +16,9 @@ extension Source {
             guard let object = json.dictionary else {
                 throw .typeMismatch(expected: "object", got: "non-object")
             }
+            guard Set(object.keys) == ["code", "detail"] else {
+                throw .typeMismatch(expected: "source reason keys", got: "foreign keys")
+            }
             guard let code = object["code"] else { throw .missingKey("code") }
             guard let detail = object["detail"] else { throw .missingKey("detail") }
             return try Self(code: Swift.String(json: code), detail: Swift.String(json: detail))

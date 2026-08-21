@@ -9,7 +9,14 @@ private let subject = Source.Subject(
         .init(
             path: ".source/profile.json",
             kind: .configuration,
-            provenance: .generated(owner: "continuous-integration-source-policy")
+            provenance: .generated(
+                .init(
+                    owner: .init("swift-foundations/swift-example"),
+                    input: "continuous-integration-source-policy",
+                    revision: "source-enforcement-v3",
+                    digest: "configuration-digest"
+                )
+            )
         ),
     ]
 )

@@ -12,8 +12,15 @@ extension Source.Rule.Coverage: JSON.Serializable {
             throw .typeMismatch(expected: "coverage object", got: "other")
         }
         switch try Swift.String(json: status) {
-        case "measured": return .measured
+        case "measured":
+            guard Set(object.keys) == ["status"] else {
+                throw .typeMismatch(expected: "measured coverage keys", got: "foreign keys")
+            }
+            return .measured
         case "unmeasured":
+            guard Set(object.keys) == ["status", "reason"] else {
+                throw .typeMismatch(expected: "unmeasured coverage keys", got: "foreign keys")
+            }
             guard let reason = object["reason"] else { throw .missingKey("reason") }
             return try .unmeasured(Source.Reason(json: reason))
         default: throw .typeMismatch(expected: "coverage status", got: "unknown")
