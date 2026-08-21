@@ -28,6 +28,24 @@ extension Source.Report {
                 )
             }
         }
+        for evidence in artifactEvidence {
+            switch evidence.verdict {
+            case .clean:
+                lines.append(
+                    "CLEAN \(evidence.subject) \(evidence.predicate.engine.token):\(evidence.predicate.token) \(evidence.artifact.path)"
+                )
+            case .findings(let reasons):
+                lines.append(
+                    "FINDINGS \(evidence.subject) \(evidence.predicate.engine.token):\(evidence.predicate.token) \(evidence.artifact.path) \(reasons.count)"
+                )
+            case .unmeasured(let reasons):
+                for reason in reasons {
+                    lines.append(
+                        "UNMEASURED \(evidence.subject) \(evidence.predicate.engine.token):\(evidence.predicate.token) \(evidence.artifact.path) \(reason.code): \(reason.detail)"
+                    )
+                }
+            }
+        }
         return lines.joined(separator: "\n") + "\n"
     }
 }

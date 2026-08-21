@@ -6,6 +6,7 @@ extension Source.Profile {
         public let configuration: Digest
         public let configurationPath: Swift.String
         public let environment: [Swift.String: Swift.String]
+        public let artifactKinds: [Source.Artifact.Kind]
         public let rules: [Source.Rule.ID]
 
         public init(
@@ -15,6 +16,7 @@ extension Source.Profile {
             configuration: Digest,
             configurationPath: Swift.String,
             environment: [Swift.String: Swift.String] = [:],
+            artifactKinds: [Source.Artifact.Kind],
             rules: [Source.Rule.ID]
         ) {
             self.id = id
@@ -23,6 +25,7 @@ extension Source.Profile {
             self.configuration = configuration
             self.configurationPath = configurationPath
             self.environment = environment
+            self.artifactKinds = artifactKinds.sorted { $0.rawValue < $1.rawValue }
             self.rules = rules.sorted {
                 ($0.engine.token, $0.token) < ($1.engine.token, $1.token)
             }
@@ -36,6 +39,7 @@ extension Source.Profile {
                 "configuration": value.configuration.json,
                 "configurationPath": value.configurationPath.json,
                 "environment": value.environment.json,
+                "artifactKinds": value.artifactKinds.json,
                 "rules": value.rules.json,
             ]
         }
@@ -56,6 +60,9 @@ extension Source.Profile {
             guard let environment = object["environment"] else {
                 throw .missingKey("environment")
             }
+            guard let artifactKinds = object["artifactKinds"] else {
+                throw .missingKey("artifactKinds")
+            }
             guard let rules = object["rules"] else { throw .missingKey("rules") }
             return try Self(
                 id: Source.Engine.ID(json: id),
@@ -64,6 +71,7 @@ extension Source.Profile {
                 configuration: Digest(json: configuration),
                 configurationPath: Swift.String(json: configurationPath),
                 environment: [Swift.String: Swift.String](json: environment),
+                artifactKinds: [Source.Artifact.Kind](json: artifactKinds),
                 rules: [Source.Rule.ID](json: rules)
             )
         }

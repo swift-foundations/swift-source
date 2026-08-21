@@ -3,7 +3,7 @@ extension Source.Subject: JSON.Serializable {
         [
             "identity": value.identity.json,
             "root": value.root.json,
-            "files": value.files.json,
+            "artifacts": value.artifacts.json,
         ]
     }
 
@@ -13,11 +13,11 @@ extension Source.Subject: JSON.Serializable {
         }
         guard let identity = object["identity"] else { throw .missingKey("identity") }
         guard let root = object["root"] else { throw .missingKey("root") }
-        guard let files = object["files"] else { throw .missingKey("files") }
+        guard let artifacts = object["artifacts"] else { throw .missingKey("artifacts") }
         return try Self(
             identity: Swift.String(json: identity),
             root: Swift.String(json: root),
-            files: [Swift.String](json: files)
+            artifacts: [Source.Artifact](json: artifacts)
         )
     }
 }

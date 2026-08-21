@@ -9,7 +9,7 @@ extension Source.Measurement {
         output: Swift.String,
         diagnostics: Swift.String
     ) -> Self {
-        guard !subject.files.isEmpty else {
+        guard !subject.paths(of: .swift).isEmpty else {
             return sourceLinterUnmeasured(
                 engine: engine,
                 subject: subject,
@@ -80,7 +80,7 @@ private func sourceLinterMeasurement(
         )
     }
 
-    let expectedFiles = subject.files.map { file in
+    let expectedFiles = subject.paths(of: .swift).map { file in
         if file.hasPrefix("/") { return file }
         if subject.root.hasSuffix("/") { return subject.root + file }
         return subject.root + "/" + file
@@ -177,10 +177,12 @@ private func sourceLinterMeasurement(
         rules: expectedRuleTokens,
         repairs: repairByKey
     )
-    let findingKeys = Swift.Set((findings + suppressions).map {
-        ($0.diagnostic.location.filePath ?? $0.diagnostic.location.fileID)
-            + "\u{0}" + $0.rule.token
-    })
+    let findingKeys = Swift.Set(
+        (findings + suppressions).map {
+            ($0.diagnostic.location.filePath ?? $0.diagnostic.location.fileID)
+                + "\u{0}" + $0.rule.token
+        }
+    )
     guard findingKeys == Swift.Set(repairByKey.keys) else {
         throw .init(code: "repair-coverage", detail: "repair proposals do not match findings")
     }
@@ -221,9 +223,7 @@ private func sourceLinterMeasurement(
     }
 
     let verdict: Source.Measurement.Verdict
-    if !unmeasured.isEmpty { verdict = .unmeasured(unmeasured) }
-    else if findings.isEmpty { verdict = .clean }
-    else { verdict = .findings(findings) }
+    if !unmeasured.isEmpty { verdict = .unmeasured(unmeasured) } else if findings.isEmpty { verdict = .clean } else { verdict = .findings(findings) }
     return Source.Measurement(
         engine: engine,
         subject: subject,
@@ -284,11 +284,13 @@ private func sourceLinterRepairs(
             disposition = .edits(parsed)
         default: throw .init(code: "repair-shape", detail: "unknown disposition")
         }
-        evidence.append(.init(
-            file: file,
-            rule: .init(engine: engine, token: token),
-            disposition: disposition
-        ))
+        evidence.append(
+            .init(
+                file: file,
+                rule: .init(engine: engine, token: token),
+                disposition: disposition
+            )
+        )
     }
     return evidence
 }
@@ -372,21 +374,23 @@ private func sourceLinterFindings(
         guard let repair = repairs[key] else {
             throw .init(code: "repair-coverage", detail: "finding omitted repair proposal")
         }
-        findings.append(try Source.Finding(
-            rule: .init(engine: engine, token: token),
-            diagnostic: .init(
-                location: .init(
-                    fileID: fileID,
-                    filePath: path,
-                    line: line,
-                    column: column
+        findings.append(
+            try Source.Finding(
+                rule: .init(engine: engine, token: token),
+                diagnostic: .init(
+                    location: .init(
+                        fileID: fileID,
+                        filePath: path,
+                        line: line,
+                        column: column
+                    ),
+                    severity: severity,
+                    identifier: token,
+                    message: sourceLinterString(object["message"])
                 ),
-                severity: severity,
-                identifier: token,
-                message: sourceLinterString(object["message"])
-            ),
-            repair: sourceLinterCapability(repair.disposition)
-        ))
+                repair: sourceLinterCapability(repair.disposition)
+            )
+        )
     }
     return findings
 }
@@ -399,16 +403,14 @@ private func sourceLinterCapability(
         .unavailable(.init(code: "unchanged", detail: "rule proposed no edit"))
     case .refused(let reason): .unavailable(reason)
     case .edits(let edits):
-        if edits.count == 1, case .rewrite = edits[0] { .automatic }
-        else { .transactional }
+        if edits.count == 1, case .rewrite = edits[0] { .automatic } else { .transactional }
     }
 }
 
 private func sourceLinterReason(_ value: JSON) throws(Source.Reason) -> Source.Reason {
     let object = try sourceLinterObject(value, required: ["code"], optional: ["detail"])
     let detail: Swift.String
-    if let value = object["detail"] { detail = try sourceLinterString(value) }
-    else { detail = "" }
+    if let value = object["detail"] { detail = try sourceLinterString(value) } else { detail = "" }
     return .init(code: try sourceLinterString(object["code"]), detail: detail)
 }
 
@@ -444,20 +446,17 @@ private func sourceLinterStrings(_ value: JSON?) throws(Source.Reason) -> [Swift
 
 private func sourceLinterString(_ value: JSON?) throws(Source.Reason) -> Swift.String {
     guard let value else { throw .init(code: "malformed-output", detail: "missing string") }
-    do throws(JSON.Error) { return try Swift.String(json: value) }
-    catch { throw .init(code: "malformed-output", detail: "expected string") }
+    do throws(JSON.Error) { return try Swift.String(json: value) } catch { throw .init(code: "malformed-output", detail: "expected string") }
 }
 
 private func sourceLinterInt(_ value: JSON?) throws(Source.Reason) -> Swift.Int {
     guard let value else { throw .init(code: "malformed-output", detail: "missing integer") }
-    do throws(JSON.Error) { return try Swift.Int(json: value) }
-    catch { throw .init(code: "malformed-output", detail: "expected integer") }
+    do throws(JSON.Error) { return try Swift.Int(json: value) } catch { throw .init(code: "malformed-output", detail: "expected integer") }
 }
 
 private func sourceLinterBool(_ value: JSON?) throws(Source.Reason) -> Swift.Bool {
     guard let value else { throw .init(code: "malformed-output", detail: "missing boolean") }
-    do throws(JSON.Error) { return try Swift.Bool(json: value) }
-    catch { throw .init(code: "malformed-output", detail: "expected boolean") }
+    do throws(JSON.Error) { return try Swift.Bool(json: value) } catch { throw .init(code: "malformed-output", detail: "expected boolean") }
 }
 
 private func sourceLinterUnmeasured(
@@ -472,7 +471,7 @@ private func sourceLinterUnmeasured(
         subject: subject,
         activeRules: rules,
         applicableRules: [],
-        files: subject.files,
+        files: subject.paths(of: .swift),
         verdict: .unmeasured([.init(code: code, detail: detail)])
     )
 }

@@ -1,11 +1,11 @@
-import Testing
 import Source_Linter
+import Testing
 
 @Suite
 struct `Source linter measurement` {
     let engine = Source.Engine.ID("swift-linter")
     let rule = Source.Rule.ID(engine: .init("swift-linter"), token: "rule")
-    let subject = Source.Subject(identity: "package", root: "/package", files: ["A.swift"])
+    let subject = Source.Subject(identity: "package", root: "/package", artifacts: [.init(path: "A.swift", kind: .swift, provenance: .authored)])
 
     @Test
     func `accepts complete clean evidence`() {

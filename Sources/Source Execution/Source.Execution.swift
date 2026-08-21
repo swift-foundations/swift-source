@@ -19,6 +19,7 @@ extension Source {
             var measurements: [Measurement] = []
             for engine in profile.engines {
                 if let selected, !selected.contains(engine.id) { continue }
+                let artifacts = subject.artifacts.filter { engine.artifactKinds.contains($0.kind) }
                 guard let driver = drivers[engine.id] else {
                     measurements.append(
                         .init(
@@ -26,7 +27,7 @@ extension Source {
                             subject: subject,
                             activeRules: engine.rules,
                             applicableRules: [],
-                            files: subject.files,
+                            files: artifacts.map(\.path),
                             verdict: .unmeasured([
                                 .init(
                                     code: "missing-driver",
