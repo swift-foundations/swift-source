@@ -243,7 +243,10 @@ private func sourceLinterRepairs(
     files: [Swift.String],
     rules: [Swift.String]
 ) throws(Source.Reason) -> [Source.Repair.Evidence] {
-    try sourceLinterArray(value).map { value in
+    let values = try sourceLinterArray(value)
+    var evidence: [Source.Repair.Evidence] = []
+    evidence.reserveCapacity(values.count)
+    for value in values {
         let object = try sourceLinterObject(
             value,
             required: ["file", "rule", "proposal"]
@@ -281,12 +284,13 @@ private func sourceLinterRepairs(
             disposition = .edits(parsed)
         default: throw .init(code: "repair-shape", detail: "unknown disposition")
         }
-        return .init(
+        evidence.append(.init(
             file: file,
             rule: .init(engine: engine, token: token),
             disposition: disposition
-        )
+        ))
     }
+    return evidence
 }
 
 private func sourceLinterEdit(_ value: JSON) throws(Source.Reason) -> Source.Repair.Evidence.Edit {
@@ -335,7 +339,10 @@ private func sourceLinterFindings(
     rules: [Swift.String],
     repairs: [Swift.String: Source.Repair.Evidence]
 ) throws(Source.Reason) -> [Source.Finding] {
-    try sourceLinterArray(value).map { value in
+    let values = try sourceLinterArray(value)
+    var findings: [Source.Finding] = []
+    findings.reserveCapacity(values.count)
+    for value in values {
         let object = try sourceLinterObject(
             value,
             required: ["rule", "severity", "message", "fileID", "line", "column"],
@@ -365,7 +372,7 @@ private func sourceLinterFindings(
         guard let repair = repairs[key] else {
             throw .init(code: "repair-coverage", detail: "finding omitted repair proposal")
         }
-        return try Source.Finding(
+        findings.append(try Source.Finding(
             rule: .init(engine: engine, token: token),
             diagnostic: .init(
                 location: .init(
@@ -379,8 +386,9 @@ private func sourceLinterFindings(
                 message: sourceLinterString(object["message"])
             ),
             repair: sourceLinterCapability(repair.disposition)
-        )
+        ))
     }
+    return findings
 }
 
 private func sourceLinterCapability(
