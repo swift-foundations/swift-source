@@ -116,18 +116,90 @@ func `repair rolls back every published operation after a later failure`() {
     refusals: [],
     postconditions: []
   )
-  switch Source.Repair.Transaction(files: files).apply(
-    plan,
-    subject: plan.subject,
-    profile: plan.profile,
-    sources: plan.sources
-  ) {
+  switch Source.Repair.Transaction().apply([
+    .init(
+      plan: plan,
+      subject: plan.subject,
+      profile: plan.profile,
+      sources: plan.sources,
+      files: files
+    )
+  ]) {
   case .success:
     Issue.record("Expected the second write to fail")
   case .failure(let reason):
     #expect(reason == failure)
   }
   #expect(state.withLock { $0.files } == ["A": [1], "B": [2]])
+}
+
+@Test
+func `repair rolls back an earlier subject when a later subject fails`() {
+  let first = Mutex(["A": [UInt8](arrayLiteral: 1)])
+  let second = Mutex(["B": [UInt8](arrayLiteral: 2)])
+  let missing = Source.Reason(code: "missing", detail: "missing")
+  let injected = Source.Reason(code: "injected", detail: "second subject")
+  let firstFiles = Source.Repair.FileSystem(
+    exists: { path in first.withLock { $0[path] != nil } },
+    read: { path in first.withLock { $0[path].map(Result.success) ?? .failure(missing) } },
+    write: { path, contents in
+      first.withLock { $0[path] = contents }
+      return .success(())
+    },
+    move: { _, _ in .failure(missing) },
+    delete: { _ in .failure(missing) }
+  )
+  let secondFiles = Source.Repair.FileSystem(
+    exists: { path in second.withLock { $0[path] != nil } },
+    read: { path in second.withLock { $0[path].map(Result.success) ?? .failure(missing) } },
+    write: { _, _ in .failure(injected) },
+    move: { _, _ in .failure(missing) },
+    delete: { _ in .failure(missing) }
+  )
+  let digest: ([UInt8]) -> Swift.String = {
+    FIPS_180_4.SHA256.digest($0.map(Byte.init)).hex
+  }
+  func plan(_ identity: Swift.String, path: Swift.String, original: UInt8, replacement: UInt8)
+    -> Source.Repair.Plan
+  {
+    .init(
+      subject: .init(identity: identity, digest: identity),
+      profile: .init("profile"),
+      sources: .init("sources-\(identity)"),
+      operations: [
+        .rewrite(path: path, expected: digest([original]), replacement: [replacement])
+      ],
+      refusals: [],
+      postconditions: [.file(path: path, digest: digest([replacement]))]
+    )
+  }
+  let firstPlan = plan("first", path: "A", original: 1, replacement: 3)
+  let secondPlan = plan("second", path: "B", original: 2, replacement: 4)
+
+  let result = Source.Repair.Transaction().apply([
+    .init(
+      plan: firstPlan,
+      subject: firstPlan.subject,
+      profile: firstPlan.profile,
+      sources: firstPlan.sources,
+      files: firstFiles
+    ),
+    .init(
+      plan: secondPlan,
+      subject: secondPlan.subject,
+      profile: secondPlan.profile,
+      sources: secondPlan.sources,
+      files: secondFiles
+    ),
+  ])
+
+  guard case .failure(let reason) = result else {
+    Issue.record("expected the later subject to fail")
+    return
+  }
+  #expect(reason == injected)
+  #expect(first.withLock { $0["A"] } == [1])
+  #expect(second.withLock { $0["B"] } == [2])
 }
 
 @Test
@@ -221,12 +293,15 @@ func `repair stages remeasures and publishes bound bytes`() throws {
   )
   let plan = staging.finish(remeasured: [clean])
   #expect(plan.refusals.isEmpty)
-  switch Source.Repair.Transaction(files: files).apply(
-    plan,
-    subject: subject.binding,
-    profile: profile,
-    sources: sources
-  ) {
+  switch Source.Repair.Transaction().apply([
+    .init(
+      plan: plan,
+      subject: subject.binding,
+      profile: profile,
+      sources: sources,
+      files: files
+    )
+  ]) {
   case .success: break
   case .failure(let reason): Issue.record("unexpected failure: \(reason.code)")
   }
@@ -341,12 +416,15 @@ func `repair refuses stale plan bindings before publication`() {
     refusals: [],
     postconditions: []
   )
-  let result = Source.Repair.Transaction(files: files).apply(
-    plan,
-    subject: .init(identity: "package", digest: "other"),
-    profile: plan.profile,
-    sources: plan.sources
-  )
+  let result = Source.Repair.Transaction().apply([
+    .init(
+      plan: plan,
+      subject: .init(identity: "package", digest: "other"),
+      profile: plan.profile,
+      sources: plan.sources,
+      files: files
+    )
+  ])
   guard case .failure(let failure) = result else {
     Issue.record("expected stale binding refusal")
     return
