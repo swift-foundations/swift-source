@@ -6,9 +6,15 @@ extension Source.Engine.Driver {
             measure: { subject, profile in
                 let result = await process.run(
                     profile.executable,
-                    ["--format", "structured", "--exit-policy", "strict", subject.root],
+                    ["--profile", profile.configurationPath, subject.root],
                     subject.root,
-                    profile.environment
+                    profile.environment.merging(
+                        [
+                            "SWIFT_LINTER_FORMAT": "structured",
+                            "SWIFT_LINTER_EXIT_POLICY": "strict",
+                        ],
+                        uniquingKeysWith: { _, required in required }
+                    )
                 )
                 return Source.Measurement.linter(
                     engine: id,
