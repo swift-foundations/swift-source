@@ -48,23 +48,35 @@ extension Source.Repair.Operation: JSON.Serializable {
         }
         switch try Swift.String(json: required("kind")) {
         case "rewrite":
+            guard Set(object.keys) == ["kind", "path", "expected", "replacement"] else {
+                throw .typeMismatch(expected: "rewrite operation keys", got: "foreign keys")
+            }
             return try .rewrite(
                 path: Swift.String(json: required("path")),
                 expected: Swift.String(json: required("expected")),
                 replacement: bytes("replacement")
             )
         case "create":
+            guard Set(object.keys) == ["kind", "path", "contents"] else {
+                throw .typeMismatch(expected: "create operation keys", got: "foreign keys")
+            }
             return try .create(
                 path: Swift.String(json: required("path")),
                 contents: bytes("contents")
             )
         case "move":
+            guard Set(object.keys) == ["kind", "from", "to", "expected"] else {
+                throw .typeMismatch(expected: "move operation keys", got: "foreign keys")
+            }
             return try .move(
                 from: Swift.String(json: required("from")),
                 to: Swift.String(json: required("to")),
                 expected: Swift.String(json: required("expected"))
             )
         case "delete":
+            guard Set(object.keys) == ["kind", "path", "expected"] else {
+                throw .typeMismatch(expected: "delete operation keys", got: "foreign keys")
+            }
             return try .delete(
                 path: Swift.String(json: required("path")),
                 expected: Swift.String(json: required("expected"))

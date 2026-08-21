@@ -15,10 +15,25 @@ extension Source.Repair.Capability: JSON.Serializable {
         }
         guard let state = object["state"] else { throw .missingKey("state") }
         switch try Swift.String(json: state) {
-        case "automatic": return .automatic
-        case "guarded": return .guarded
-        case "transactional": return .transactional
+        case "automatic":
+            guard Set(object.keys) == ["state"] else {
+                throw .typeMismatch(expected: "automatic repair capability keys", got: "foreign keys")
+            }
+            return .automatic
+        case "guarded":
+            guard Set(object.keys) == ["state"] else {
+                throw .typeMismatch(expected: "guarded repair capability keys", got: "foreign keys")
+            }
+            return .guarded
+        case "transactional":
+            guard Set(object.keys) == ["state"] else {
+                throw .typeMismatch(expected: "transactional repair capability keys", got: "foreign keys")
+            }
+            return .transactional
         case "unavailable":
+            guard Set(object.keys) == ["state", "reason"] else {
+                throw .typeMismatch(expected: "unavailable repair capability keys", got: "foreign keys")
+            }
             guard let reason = object["reason"] else { throw .missingKey("reason") }
             return try .unavailable(Source.Reason(json: reason))
         default: throw .typeMismatch(expected: "repair capability", got: "unknown")

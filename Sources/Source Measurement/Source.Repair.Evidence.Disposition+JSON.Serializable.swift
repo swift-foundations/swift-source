@@ -12,11 +12,21 @@ extension Source.Repair.Evidence.Disposition: JSON.Serializable {
             throw .typeMismatch(expected: "repair disposition object", got: "other")
         }
         switch try Swift.String(json: status) {
-        case "unchanged": return .unchanged
+        case "unchanged":
+            guard Set(object.keys) == ["status"] else {
+                throw .typeMismatch(expected: "unchanged repair disposition keys", got: "foreign keys")
+            }
+            return .unchanged
         case "edits":
+            guard Set(object.keys) == ["status", "edits"] else {
+                throw .typeMismatch(expected: "edits repair disposition keys", got: "foreign keys")
+            }
             guard let edits = object["edits"] else { throw .missingKey("edits") }
             return try .edits([Source.Repair.Evidence.Edit](json: edits))
         case "refused":
+            guard Set(object.keys) == ["status", "reason"] else {
+                throw .typeMismatch(expected: "refused repair disposition keys", got: "foreign keys")
+            }
             guard let reason = object["reason"] else { throw .missingKey("reason") }
             return try .refused(Source.Reason(json: reason))
         default: throw .typeMismatch(expected: "repair disposition", got: "unknown")
