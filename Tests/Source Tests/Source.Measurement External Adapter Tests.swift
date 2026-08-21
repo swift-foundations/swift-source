@@ -3,7 +3,11 @@ import Testing
 
 @Suite
 struct `Source external measurements` {
-    let subject = Source.Subject(identity: "package", root: "/package", artifacts: [.init(path: "A.swift", kind: .swift, provenance: .authored)])
+    let subject = Source.Subject(
+        identity: "package",
+        root: "/package",
+        artifacts: [.init(path: "A.swift", kind: .swift, provenance: .authored, digest: .init("a"))]
+    )
 
     @Test
     func `swift format accepts strict diagnostics`() {

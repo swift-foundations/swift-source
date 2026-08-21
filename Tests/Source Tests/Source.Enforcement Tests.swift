@@ -44,7 +44,9 @@ func `execution fails closed when an engine driver is absent`() async throws {
         .init(
             identity: "package",
             root: "/package",
-            artifacts: [.init(path: "A.swift", kind: .swift, provenance: .authored)]
+            artifacts: [
+                .init(path: "A.swift", kind: .swift, provenance: .authored, digest: .init("a"))
+            ]
         ),
         profile: profile
     )
@@ -251,7 +253,7 @@ func `repair stages remeasures and publishes bound bytes`() throws {
     let subject = Source.Subject(
         identity: "package",
         root: "/package",
-        artifacts: [.init(path: "A.swift", kind: .swift, provenance: .authored)]
+        artifacts: [.init(path: "A.swift", kind: .swift, provenance: .authored, digest: .init("a"))]
     )
     let engine = Source.Engine.ID("swift-linter")
     let rule = Source.Rule.ID(engine: engine, token: "rule")
@@ -346,7 +348,7 @@ func `rule scoped repair still accepts clean remeasurement by every engine`() th
     let subject = Source.Subject(
         identity: "package",
         root: "/package",
-        artifacts: [.init(path: "A.swift", kind: .swift, provenance: .authored)]
+        artifacts: [.init(path: "A.swift", kind: .swift, provenance: .authored, digest: .init("a"))]
     )
     let linter = Source.Engine.ID("swift-linter")
     let format = Source.Engine.ID("swift-format")

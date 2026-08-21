@@ -5,7 +5,11 @@ import Testing
 struct `Source linter measurement` {
     let engine = Source.Engine.ID("swift-linter")
     let rule = Source.Rule.ID(engine: .init("swift-linter"), token: "rule")
-    let subject = Source.Subject(identity: "package", root: "/package", artifacts: [.init(path: "A.swift", kind: .swift, provenance: .authored)])
+    let subject = Source.Subject(
+        identity: "package",
+        root: "/package",
+        artifacts: [.init(path: "A.swift", kind: .swift, provenance: .authored, digest: .init("a"))]
+    )
 
     @Test
     func `accepts complete clean evidence`() {
@@ -43,8 +47,17 @@ struct `Source linter measurement` {
         ("{", "malformed-output"),
         (replace(clean, "\"schema\":1", with: "\"schema\":1,\"extra\":0"), "unconsumed-output"),
         (replace(clean, observation, with: ""), "observation-count"),
-        (replace(clean, "\"activeRules\":[\"rule\"]", with: "\"activeRules\":[\"other\"]"), "active-rule-mismatch"),
-        (replace(clean, "\"files\":[\"/package/A.swift\"]", with: "\"files\":[\"/package/B.swift\"]"), "file-mismatch"),
+        (
+            replace(clean, "\"activeRules\":[\"rule\"]", with: "\"activeRules\":[\"other\"]"),
+            "active-rule-mismatch"
+        ),
+        (
+            replace(
+                clean,
+                "\"files\":[\"/package/A.swift\"]",
+                with: "\"files\":[\"/package/B.swift\"]"
+            ), "file-mismatch"
+        ),
         (replace(clean, "\"findings\":0", with: "\"findings\":1"), "summary-mismatch"),
     ])
     func `rejects incomplete or contradictory evidence`(fixture: (Swift.String, Swift.String)) {
@@ -61,7 +74,8 @@ struct `Source linter measurement` {
         let unmeasured = replace(
             clean,
             "\"coverage\":{\"status\":\"measured\"}",
-            with: "\"coverage\":{\"status\":\"unmeasured\",\"reason\":{\"code\":\"missingSemanticContext\"}}"
+            with:
+                "\"coverage\":{\"status\":\"unmeasured\",\"reason\":{\"code\":\"missingSemanticContext\"}}"
         )
         let counts = replace(
             unmeasured,

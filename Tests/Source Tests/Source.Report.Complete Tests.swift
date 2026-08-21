@@ -5,7 +5,7 @@ private let subject = Source.Subject(
     identity: "swift-foundations/swift-example",
     root: "/workspace/swift-example",
     artifacts: [
-        .init(path: "Package.swift", kind: .swift, provenance: .authored),
+        .init(path: "Package.swift", kind: .swift, provenance: .authored, digest: .init("package")),
         .init(
             path: ".source/profile.json",
             kind: .configuration,
@@ -16,7 +16,8 @@ private let subject = Source.Subject(
                     revision: "source-enforcement-v3",
                     digest: "configuration-digest"
                 )
-            )
+            ),
+            digest: .init("configuration")
         ),
     ]
 )

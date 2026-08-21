@@ -65,7 +65,9 @@ extension Source.Report {
 
             for subject in commitment.subjects {
                 let paths = subject.artifacts.map(\.path)
-                guard !paths.isEmpty, Set(paths).count == paths.count else {
+                guard !paths.isEmpty, Set(paths).count == paths.count,
+                    subject.artifacts.allSatisfy({ !$0.digest.hex.isEmpty })
+                else {
                     throw .artifacts(subject.identity)
                 }
                 for artifact in subject.artifacts {
