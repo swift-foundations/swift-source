@@ -1,6 +1,6 @@
 extension Source {
     public struct Report: Sendable, JSON.Serializable {
-        public static let schema = 3
+        public static let schema = 4
 
         public let scope: Scope
         public let profile: Profile.Digest
@@ -45,7 +45,7 @@ extension Source {
                 return value
             }
             guard try Swift.Int(json: required("schema")) == schema else {
-                throw .typeMismatch(expected: "source report schema 3", got: "other schema")
+                throw .typeMismatch(expected: "source report schema 4", got: "other schema")
             }
             return try Self(
                 scope: Scope(json: required("scope")),

@@ -6,6 +6,9 @@ extension Source.Measurement: JSON.Serializable {
             "activeRules": value.activeRules.json,
             "applicableRules": value.applicableRules.json,
             "files": value.files.json,
+            "observations": value.observations.json,
+            "suppressions": value.suppressions.json,
+            "repairs": value.repairs.json,
             "verdict": value.verdict.json,
         ]
     }
@@ -24,6 +27,9 @@ extension Source.Measurement: JSON.Serializable {
             activeRules: [Source.Rule.ID](json: required("activeRules")),
             applicableRules: [Source.Rule.ID](json: required("applicableRules")),
             files: [Swift.String](json: required("files")),
+            observations: [Source.Rule.Observation](json: required("observations")),
+            suppressions: [Source.Finding](json: required("suppressions")),
+            repairs: [Source.Repair.Evidence](json: required("repairs")),
             verdict: Verdict(json: required("verdict"))
         )
     }

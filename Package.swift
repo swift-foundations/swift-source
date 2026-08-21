@@ -71,7 +71,11 @@ let package = Package(
         ),
         .target(
             name: "Source Linter",
-            dependencies: ["Source Measurement", "Source Profile"]
+            dependencies: [
+                "Source Measurement",
+                "Source Profile",
+                .product(name: "JSON", package: "swift-json"),
+            ]
         ),
         .target(
             name: "Source Execution",
@@ -102,6 +106,7 @@ let package = Package(
             name: "Source Test Support",
             dependencies: [
                 "Source Execution",
+                "Source Linter",
                 "Source Repair",
                 "Source Report",
             ]
@@ -113,6 +118,7 @@ let package = Package(
                 "Source Measurement",
                 "Source Profile",
                 "Source Execution",
+                "Source Linter",
                 "Source Repair",
                 "Source Report",
                 "Source Test Support",

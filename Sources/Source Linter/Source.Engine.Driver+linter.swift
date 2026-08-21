@@ -6,10 +6,10 @@ extension Source.Engine.Driver {
             measure: { subject, profile in
                 let result = await process.run(
                     profile.executable,
-                    ["--exit-policy", "strict", subject.root],
+                    ["--format", "structured", "--exit-policy", "strict", subject.root],
                     subject.root
                 )
-                return Source.Measurement.external(
+                return Source.Measurement.linter(
                     engine: id,
                     subject: subject,
                     rules: profile.rules,
