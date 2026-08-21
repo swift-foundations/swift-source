@@ -224,9 +224,8 @@ extension Source.Repair {
     private static func rank(_ engine: Source.Engine.ID) -> Swift.Int {
       switch engine.token {
       case "swift-linter": 0
-      case "swiftlint": 1
-      case "swift-format": 2
-      default: 3
+      case "swift-format": 1
+      default: 2
       }
     }
   }

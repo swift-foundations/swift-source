@@ -1,4 +1,3 @@
-import Source_SwiftLint
 import Source_Swift_Format
 import Testing
 
@@ -44,48 +43,5 @@ struct `Source external measurements` {
       return
     }
     #expect(reasons.map(\.code) == ["rule-profile"])
-  }
-
-  @Test
-  func `SwiftLint accepts its exact JSON schema`() {
-    let engine = Source.Engine.ID("swiftlint")
-    let rule = Source.Rule.ID(engine: engine, token: "identifier_name")
-    let measurement = Source.Measurement.swiftLint(
-      engine: engine,
-      subject: subject,
-      rules: [rule],
-      status: 2,
-      output: """
-        [{"character":5,"file":"/package/A.swift","line":1,"reason":"name","rule_id":"identifier_name","severity":"Error","type":"Identifier Name"}]
-        """,
-      diagnostics: ""
-    )
-    guard case .findings(let findings) = measurement.verdict else {
-      Issue.record("expected findings")
-      return
-    }
-    #expect(findings.count == 1)
-    #expect(findings[0].rule == rule)
-    #expect(measurement.observations.count == 1)
-  }
-
-  @Test
-  func `SwiftLint rejects added JSON fields`() {
-    let engine = Source.Engine.ID("swiftlint")
-    let measurement = Source.Measurement.swiftLint(
-      engine: engine,
-      subject: subject,
-      rules: [.init(engine: engine, token: "identifier_name")],
-      status: 2,
-      output: """
-        [{"character":5,"file":"/package/A.swift","line":1,"reason":"name","rule_id":"identifier_name","severity":"Error","type":"Identifier Name","extra":true}]
-        """,
-      diagnostics: ""
-    )
-    guard case .unmeasured(let reasons) = measurement.verdict else {
-      Issue.record("expected unmeasured")
-      return
-    }
-    #expect(reasons.map(\.code) == ["unconsumed-output"])
   }
 }

@@ -16,7 +16,6 @@ let package = Package(
     .library(name: "Source Measurement", targets: ["Source Measurement"]),
     .library(name: "Source Profile", targets: ["Source Profile"]),
     .library(name: "Source Swift Format", targets: ["Source Swift Format"]),
-    .library(name: "Source SwiftLint", targets: ["Source SwiftLint"]),
     .library(name: "Source Linter", targets: ["Source Linter"]),
     .library(name: "Source Execution", targets: ["Source Execution"]),
     .library(name: "Source Report", targets: ["Source Report"]),
@@ -66,14 +65,6 @@ let package = Package(
       dependencies: ["Source Measurement", "Source Profile"]
     ),
     .target(
-      name: "Source SwiftLint",
-      dependencies: [
-        "Source Measurement",
-        "Source Profile",
-        .product(name: "JSON", package: "swift-json"),
-      ]
-    ),
-    .target(
       name: "Source Linter",
       dependencies: [
         "Source Measurement",
@@ -87,7 +78,6 @@ let package = Package(
         "Source Measurement",
         "Source Profile",
         "Source Swift Format",
-        "Source SwiftLint",
         "Source Linter",
       ]
     ),
@@ -116,7 +106,6 @@ let package = Package(
         "Source Repair",
         "Source Report",
         "Source Swift Format",
-        "Source SwiftLint",
       ]
     ),
     .testTarget(
