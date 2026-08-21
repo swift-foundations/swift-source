@@ -19,6 +19,9 @@ extension Source.Report.Commitment {
             guard let object = json.dictionary else {
                 throw .typeMismatch(expected: "object", got: "non-object")
             }
+            guard Set(object.keys) == ["id", "artifactKinds"] else {
+                throw .typeMismatch(expected: "predicate commitment keys", got: "foreign keys")
+            }
             guard let id = object["id"] else { throw .missingKey("id") }
             guard let artifactKinds = object["artifactKinds"] else {
                 throw .missingKey("artifactKinds")

@@ -1,6 +1,6 @@
 extension Source {
     public struct Report: Sendable, JSON.Serializable {
-        public static let schema = 5
+        public static let schema = 6
 
         public let scope: Scope
         public let profile: Profile.Digest
@@ -50,12 +50,19 @@ extension Source {
             guard let object = json.dictionary else {
                 throw .typeMismatch(expected: "object", got: "non-object")
             }
+            let expected: Set<Swift.String> = [
+                "schema", "scope", "profile", "commitment", "subjects", "references",
+                "measurements", "artifactEvidence",
+            ]
+            guard Set(object.keys) == expected else {
+                throw .typeMismatch(expected: "source report keys", got: "foreign keys")
+            }
             func required(_ key: Swift.String) throws(JSON.Error) -> JSON {
                 guard let value = object[key] else { throw .missingKey(key) }
                 return value
             }
             guard try Swift.Int(json: required("schema")) == schema else {
-                throw .typeMismatch(expected: "source report schema 5", got: "other schema")
+                throw .typeMismatch(expected: "source report schema 6", got: "other schema")
             }
             return try Self(
                 scope: Scope(json: required("scope")),

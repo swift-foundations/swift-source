@@ -16,14 +16,36 @@ extension Source.Measurement.Verdict: JSON.Serializable {
         }
         guard let state = object["state"] else { throw .missingKey("state") }
         switch try Swift.String(json: state) {
-        case "clean": return .clean
+        case "clean":
+            guard Set(object.keys) == ["state"] else {
+                throw .typeMismatch(expected: "clean verdict keys", got: "foreign keys")
+            }
+            return .clean
         case "findings":
+            guard Set(object.keys) == ["state", "findings"] else {
+                throw .typeMismatch(expected: "findings verdict keys", got: "foreign keys")
+            }
             guard let findings = object["findings"] else { throw .missingKey("findings") }
-            return try .findings([Source.Finding](json: findings))
+            let decoded = try [Source.Finding](json: findings)
+            guard !decoded.isEmpty else {
+                throw .typeMismatch(expected: "nonempty findings", got: "empty")
+            }
+            return .findings(decoded)
         case "unmeasured":
+            guard Set(object.keys) == ["state", "reasons"] else {
+                throw .typeMismatch(expected: "unmeasured verdict keys", got: "foreign keys")
+            }
             guard let reasons = object["reasons"] else { throw .missingKey("reasons") }
-            return try .unmeasured([Source.Reason](json: reasons))
-        case "not-requested": return .notRequested
+            let decoded = try [Source.Reason](json: reasons)
+            guard !decoded.isEmpty else {
+                throw .typeMismatch(expected: "nonempty reasons", got: "empty")
+            }
+            return .unmeasured(decoded)
+        case "not-requested":
+            guard Set(object.keys) == ["state"] else {
+                throw .typeMismatch(expected: "not-requested verdict keys", got: "foreign keys")
+            }
+            return .notRequested
         default: throw .typeMismatch(expected: "measurement verdict", got: "unknown")
         }
     }

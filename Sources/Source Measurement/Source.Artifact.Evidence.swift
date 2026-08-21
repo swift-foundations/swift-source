@@ -30,6 +30,9 @@ extension Source.Artifact {
             guard let object = json.dictionary else {
                 throw .typeMismatch(expected: "object", got: "non-object")
             }
+            guard Set(object.keys) == ["subject", "artifact", "predicate", "verdict"] else {
+                throw .typeMismatch(expected: "artifact evidence keys", got: "foreign keys")
+            }
             func required(_ key: Swift.String) throws(JSON.Error) -> JSON {
                 guard let value = object[key] else { throw .missingKey(key) }
                 return value

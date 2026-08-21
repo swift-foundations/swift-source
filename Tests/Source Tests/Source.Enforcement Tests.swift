@@ -41,7 +41,11 @@ func `execution fails closed when an engine driver is absent`() async throws {
     )
     let execution = try Source.Execution(drivers: [])
     let result = await execution.measure(
-        .init(identity: "package", root: "/package", artifacts: [.init(path: "A.swift", kind: .swift, provenance: .authored)]),
+        .init(
+            identity: "package",
+            root: "/package",
+            artifacts: [.init(path: "A.swift", kind: .swift, provenance: .authored)]
+        ),
         profile: profile
     )
     guard case .unmeasured(let reasons) = result[0].verdict else {
@@ -56,7 +60,7 @@ func `complete report rejects partial evidence`() {
     let report = Source.Report(
         scope: .partial,
         profile: .init("profile"),
-        commitment: .init(subjects: [], engines: [], predicates: []),
+        commitment: .init(subjects: [], engines: [], requirements: [], predicates: []),
         subjects: [],
         references: [],
         measurements: [],
@@ -65,7 +69,7 @@ func `complete report rejects partial evidence`() {
     #expect(throws: Source.Report.Complete.Error.partial) {
         try Source.Report.Complete(
             report,
-            expected: .init(subjects: [], engines: [], predicates: [])
+            expected: .init(subjects: [], engines: [], requirements: [], predicates: [])
         )
     }
 }
@@ -81,7 +85,8 @@ func `repair rolls back every published operation after a later failure`() {
     let failure = Source.Reason(code: "injected", detail: "second write")
     let files = Source.Repair.FileSystem(
         exists: { path in state.withLock { $0.files[path] != nil } },
-        read: { path in state.withLock { $0.files[path].map(Result.success) ?? .failure(unavailable) }
+        read: { path in
+            state.withLock { $0.files[path].map(Result.success) ?? .failure(unavailable) }
         },
         write: { path, contents in
             state.withLock {
@@ -243,7 +248,11 @@ func `repair stages remeasures and publishes bound bytes`() throws {
             }
         }
     )
-    let subject = Source.Subject(identity: "package", root: "/package", artifacts: [.init(path: "A.swift", kind: .swift, provenance: .authored)])
+    let subject = Source.Subject(
+        identity: "package",
+        root: "/package",
+        artifacts: [.init(path: "A.swift", kind: .swift, provenance: .authored)]
+    )
     let engine = Source.Engine.ID("swift-linter")
     let rule = Source.Rule.ID(engine: engine, token: "rule")
     let finding = Source.Finding(
@@ -334,7 +343,11 @@ func `rule scoped repair still accepts clean remeasurement by every engine`() th
         move: { _, _ in .failure(unavailable) },
         delete: { _ in .failure(unavailable) }
     )
-    let subject = Source.Subject(identity: "package", root: "/package", artifacts: [.init(path: "A.swift", kind: .swift, provenance: .authored)])
+    let subject = Source.Subject(
+        identity: "package",
+        root: "/package",
+        artifacts: [.init(path: "A.swift", kind: .swift, provenance: .authored)]
+    )
     let linter = Source.Engine.ID("swift-linter")
     let format = Source.Engine.ID("swift-format")
     let selected = Source.Rule.ID(engine: linter, token: "selected")
@@ -357,7 +370,12 @@ func `rule scoped repair still accepts clean remeasurement by every engine`() th
             applicableRules: [selected],
             files: ["/package/A.swift"],
             observations: [
-                .init(file: "/package/A.swift", rule: selected, applicable: true, coverage: .measured)
+                .init(
+                    file: "/package/A.swift",
+                    rule: selected,
+                    applicable: true,
+                    coverage: .measured
+                )
             ],
             repairs: [
                 .init(
@@ -380,7 +398,12 @@ func `rule scoped repair still accepts clean remeasurement by every engine`() th
             applicableRules: [formatting],
             files: ["/package/A.swift"],
             observations: [
-                .init(file: "/package/A.swift", rule: formatting, applicable: true, coverage: .measured)
+                .init(
+                    file: "/package/A.swift",
+                    rule: formatting,
+                    applicable: true,
+                    coverage: .measured
+                )
             ],
             verdict: .clean
         ),

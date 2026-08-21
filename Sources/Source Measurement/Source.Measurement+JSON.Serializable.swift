@@ -17,6 +17,13 @@ extension Source.Measurement: JSON.Serializable {
         guard let object = json.dictionary else {
             throw .typeMismatch(expected: "object", got: "non-object")
         }
+        let expected: Set<Swift.String> = [
+            "engine", "subject", "activeRules", "applicableRules", "files", "observations",
+            "suppressions", "repairs", "verdict",
+        ]
+        guard Set(object.keys) == expected else {
+            throw .typeMismatch(expected: "measurement keys", got: "foreign keys")
+        }
         func required(_ key: Swift.String) throws(JSON.Error) -> JSON {
             guard let value = object[key] else { throw .missingKey(key) }
             return value

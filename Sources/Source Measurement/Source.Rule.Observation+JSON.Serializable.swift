@@ -12,6 +12,9 @@ extension Source.Rule.Observation: JSON.Serializable {
         guard let object = json.dictionary else {
             throw .typeMismatch(expected: "observation object", got: "other")
         }
+        guard Set(object.keys) == ["file", "rule", "applicable", "coverage"] else {
+            throw .typeMismatch(expected: "observation keys", got: "foreign keys")
+        }
         func required(_ key: Swift.String) throws(JSON.Error) -> JSON {
             guard let value = object[key] else { throw .missingKey(key) }
             return value

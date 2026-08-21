@@ -21,7 +21,18 @@ private let exactConfiguration = Source.Rule.ID(
 )
 private let commitment = Source.Report.Commitment(
     subjects: [subject],
-    engines: [.init(id: linter, artifactKinds: [.swift])],
+    engines: [
+        .init(id: linter, artifactKinds: [.swift]),
+        .init(id: exactConfiguration.engine, artifactKinds: [.configuration]),
+    ],
+    requirements: [
+        .init(
+            subject: subject.identity,
+            engine: linter,
+            artifacts: ["Package.swift"],
+            rules: [linterRule]
+        )
+    ],
     predicates: [.init(id: exactConfiguration, artifactKinds: [.configuration])]
 )
 
@@ -42,7 +53,12 @@ func `complete report proves exact subjects engines and artifact predicates`() t
 
 @Test
 func `complete report rejects an empty expected cohort`() {
-    let empty = Source.Report.Commitment(subjects: [], engines: [], predicates: [])
+    let empty = Source.Report.Commitment(
+        subjects: [],
+        engines: [],
+        requirements: [],
+        predicates: []
+    )
     let report = Source.Report(
         scope: .workspace,
         profile: .init("profile"),
@@ -55,6 +71,37 @@ func `complete report rejects an empty expected cohort`() {
 
     #expect(throws: Source.Report.Complete.Error.subjects) {
         try Source.Report.Complete(report, expected: empty)
+    }
+}
+
+@Test
+func `complete report rejects a dropped active rule`() {
+    let omitted = Source.Rule.ID(engine: linter, token: "omitted")
+    let exact = Source.Report.Commitment(
+        subjects: [subject],
+        engines: commitment.engines,
+        requirements: [
+            .init(
+                subject: subject.identity,
+                engine: linter,
+                artifacts: ["Package.swift"],
+                rules: [linterRule, omitted]
+            )
+        ],
+        predicates: commitment.predicates
+    )
+    let report = Source.Report(
+        scope: .workspace,
+        profile: .init("profile"),
+        commitment: exact,
+        subjects: [subject],
+        references: [],
+        measurements: [measurement],
+        artifactEvidence: [configurationEvidence]
+    )
+
+    #expect(throws: Source.Report.Complete.Error.coverage(subject.identity)) {
+        try Source.Report.Complete(report, expected: exact)
     }
 }
 

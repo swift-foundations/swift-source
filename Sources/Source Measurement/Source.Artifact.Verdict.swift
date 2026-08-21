@@ -21,13 +21,34 @@ extension Source.Artifact {
             }
             guard let status = object["status"] else { throw .missingKey("status") }
             switch try Swift.String(json: status) {
-            case "clean": return .clean
+            case "clean":
+                guard Set(object.keys) == ["status"] else {
+                    throw .typeMismatch(
+                        expected: "clean artifact verdict keys",
+                        got: "foreign keys"
+                    )
+                }
+                return .clean
             case "findings":
+                guard Set(object.keys) == ["status", "reasons"] else {
+                    throw .typeMismatch(expected: "artifact findings keys", got: "foreign keys")
+                }
                 guard let reasons = object["reasons"] else { throw .missingKey("reasons") }
-                return try .findings([Source.Reason](json: reasons))
+                let decoded = try [Source.Reason](json: reasons)
+                guard !decoded.isEmpty else {
+                    throw .typeMismatch(expected: "nonempty reasons", got: "empty")
+                }
+                return .findings(decoded)
             case "unmeasured":
+                guard Set(object.keys) == ["status", "reasons"] else {
+                    throw .typeMismatch(expected: "artifact unmeasured keys", got: "foreign keys")
+                }
                 guard let reasons = object["reasons"] else { throw .missingKey("reasons") }
-                return try .unmeasured([Source.Reason](json: reasons))
+                let decoded = try [Source.Reason](json: reasons)
+                guard !decoded.isEmpty else {
+                    throw .typeMismatch(expected: "nonempty reasons", got: "empty")
+                }
+                return .unmeasured(decoded)
             default:
                 throw .typeMismatch(expected: "artifact verdict", got: "unknown status")
             }
