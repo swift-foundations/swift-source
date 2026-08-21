@@ -163,72 +163,134 @@ extension Source.Report {
             }
             self.report = report
         }
+    }
+}
 
-        private static func validate(_ measurement: Source.Measurement) throws(Error) {
-            let files = measurement.files
-            let rules = measurement.activeRules
-            guard Set(files).count == files.count,
-                Set(rules).count == rules.count,
-                rules.allSatisfy({ $0.engine == measurement.engine }),
-                measurement.observations.count == files.count * rules.count
-            else { throw .coverage(measurement.subject.identity) }
-            for file in files {
-                for rule in rules {
-                    let observations = measurement.observations.filter {
-                        $0.file == file && $0.rule == rule
-                    }
-                    guard observations.count == 1, let observation = observations.first else {
-                        throw .coverage(measurement.subject.identity)
-                    }
-                    guard case .measured = observation.coverage else {
-                        throw .coverage(measurement.subject.identity)
-                    }
+extension Source.Report.Complete {
+    private static func validate(_ measurement: Source.Measurement) throws(Error) {
+        let files = measurement.files
+        let rules = measurement.activeRules
+        let observationKeys = measurement.observations.map {
+            Self.key(file: $0.file, rule: $0.rule)
+        }
+        guard Set(files).count == files.count,
+            Set(rules).count == rules.count,
+            rules.allSatisfy({ $0.engine == measurement.engine }),
+            measurement.observations.count == files.count * rules.count,
+            Set(observationKeys).count == observationKeys.count
+        else { throw .coverage(measurement.subject.identity) }
+        for file in files {
+            for rule in rules {
+                let observations = measurement.observations.filter {
+                    $0.file == file && $0.rule == rule
                 }
-            }
-            let applicable = Set(
-                measurement.observations.compactMap {
-                    $0.applicable ? $0.rule : nil
+                guard observations.count == 1, let observation = observations.first else {
+                    throw .coverage(measurement.subject.identity)
                 }
-            )
-            guard applicable == Set(measurement.applicableRules),
-                measurement.applicableRules.count == applicable.count
-            else { throw .coverage(measurement.subject.identity) }
-            for finding in measurement.suppressions {
-                guard rules.contains(finding.rule),
-                    files.contains(finding.diagnostic.location.filePath)
-                else { throw .coverage(measurement.subject.identity) }
-            }
-            for repair in measurement.repairs {
-                guard rules.contains(repair.rule), files.contains(repair.file) else {
+                guard case .measured = observation.coverage else {
                     throw .coverage(measurement.subject.identity)
                 }
             }
-            switch measurement.verdict {
-            case .clean:
-                break
-            case .findings(let findings):
-                guard !findings.isEmpty,
-                    findings.allSatisfy({ finding in
-                        rules.contains(finding.rule)
-                            && files.contains(finding.diagnostic.location.filePath)
-                    })
-                else { throw .coverage(measurement.subject.identity) }
-            case .unmeasured(let reasons):
-                guard !reasons.isEmpty else { throw .coverage(measurement.subject.identity) }
-                throw .coverage(measurement.subject.identity)
-            case .notRequested:
+        }
+        let applicable = Set(
+            measurement.observations.compactMap {
+                $0.applicable ? $0.rule : nil
+            }
+        )
+        guard applicable == Set(measurement.applicableRules),
+            measurement.applicableRules.count == applicable.count,
+            measurement.applicableRules.allSatisfy(rules.contains)
+        else { throw .coverage(measurement.subject.identity) }
+        let applicableKeys = Set(
+            measurement.observations.compactMap {
+                $0.applicable ? Self.key(file: $0.file, rule: $0.rule) : nil
+            }
+        )
+        let suppressionIdentities = measurement.suppressions.map(Self.identity)
+        for finding in measurement.suppressions {
+            guard let path = finding.diagnostic.location.filePath,
+                applicableKeys.contains(Self.key(file: path, rule: finding.rule)),
+                !finding.diagnostic.message.isEmpty
+            else { throw .coverage(measurement.subject.identity) }
+        }
+        guard Set(suppressionIdentities).count == suppressionIdentities.count else {
+            throw .coverage(measurement.subject.identity)
+        }
+        let repairKeys = measurement.repairs.map {
+            Self.key(file: $0.file, rule: $0.rule)
+        }
+        for repair in measurement.repairs {
+            guard applicableKeys.contains(Self.key(file: repair.file, rule: repair.rule)) else {
                 throw .coverage(measurement.subject.identity)
             }
         }
-
-        private static func absolute(
-            _ paths: [Swift.String],
-            under root: Swift.String
-        ) -> [Swift.String] {
-            paths.map { path in
-                if path.hasPrefix("/") { return path }
-                return root.hasSuffix("/") ? root + path : root + "/" + path
-            }.sorted()
+        guard Set(repairKeys).count == repairKeys.count else {
+            throw .coverage(measurement.subject.identity)
         }
+        switch measurement.verdict {
+        case .clean:
+            guard
+                Set(repairKeys)
+                    == Set(
+                        measurement.suppressions.compactMap { finding in
+                            finding.diagnostic.location.filePath.map { path in
+                                Self.key(file: path, rule: finding.rule)
+                            }
+                        }
+                    )
+            else { throw .coverage(measurement.subject.identity) }
+        case .findings(let findings):
+            let findingIdentities = findings.map(Self.identity)
+            guard !findings.isEmpty,
+                Set(findingIdentities).count == findingIdentities.count,
+                findings.allSatisfy({ finding in
+                    guard let path = finding.diagnostic.location.filePath else { return false }
+                    return applicableKeys.contains(Self.key(file: path, rule: finding.rule))
+                        && !finding.diagnostic.message.isEmpty
+                }),
+                Set(repairKeys)
+                    == Set(
+                        (findings + measurement.suppressions).compactMap { finding in
+                            finding.diagnostic.location.filePath.map {
+                                Self.key(file: $0, rule: finding.rule)
+                            }
+                        }
+                    )
+            else { throw .coverage(measurement.subject.identity) }
+        case .unmeasured(let reasons):
+            guard !reasons.isEmpty,
+                reasons.allSatisfy({ !$0.code.isEmpty && !$0.detail.isEmpty })
+            else { throw .coverage(measurement.subject.identity) }
+            throw .coverage(measurement.subject.identity)
+        case .notRequested:
+            throw .coverage(measurement.subject.identity)
+        }
+    }
+
+    private static func key(file: Swift.String, rule: Source.Rule.ID) -> Swift.String {
+        file + "\u{0}" + rule.engine.token + "\u{0}" + rule.token
+    }
+
+    private static func identity(_ finding: Source.Finding) -> Swift.String {
+        let location = finding.diagnostic.location
+        return [
+            finding.rule.engine.token,
+            finding.rule.token,
+            location.filePath ?? location.fileID,
+            location.line.description,
+            location.column.description,
+            finding.diagnostic.identifier,
+            finding.diagnostic.message,
+        ].joined(separator: "\u{0}")
+    }
+
+    private static func absolute(
+        _ paths: [Swift.String],
+        under root: Swift.String
+    ) -> [Swift.String] {
+        paths.map { path in
+            if path.hasPrefix("/") { return path }
+            return root.hasSuffix("/") ? root + path : root + "/" + path
+        }.sorted()
     }
 }
