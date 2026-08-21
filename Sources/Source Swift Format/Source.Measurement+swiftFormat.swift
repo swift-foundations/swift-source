@@ -11,8 +11,10 @@ extension Source.Measurement {
     guard !files.isEmpty else {
       return sourceSwiftFormatUnmeasured(engine, subject, rules, "zero-files", "no files")
     }
-    guard !rules.isEmpty else {
-      return sourceSwiftFormatUnmeasured(engine, subject, rules, "zero-rules", "no rules")
+    guard rules.count == 1, rules[0].engine == engine, rules[0].token == "format" else {
+      return sourceSwiftFormatUnmeasured(
+        engine, subject, rules, "rule-profile", "swift-format requires its format predicate"
+      )
     }
     guard output.isEmpty else {
       return sourceSwiftFormatUnmeasured(
@@ -82,7 +84,8 @@ private func sourceSwiftFormatFinding(
   let message = sourceSwiftFormatTrim(fields[4])
   guard message.first == "[", let end = message.firstIndex(of: "]") else { return nil }
   let token = Swift.String(message[message.index(after: message.startIndex)..<end])
-  guard let rule = rules.first(where: { $0.token == token }) else { return nil }
+  guard rules.count == 1 else { return nil }
+  let rule = rules[0]
   let detail = sourceSwiftFormatTrim(message[message.index(after: end)...])
   return Source.Finding(
     rule: rule,

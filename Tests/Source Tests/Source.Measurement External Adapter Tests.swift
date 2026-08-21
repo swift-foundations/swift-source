@@ -9,7 +9,7 @@ struct `Source external measurements` {
   @Test
   func `swift format accepts strict diagnostics`() {
     let engine = Source.Engine.ID("swift-format")
-    let rule = Source.Rule.ID(engine: engine, token: "Spacing")
+    let rule = Source.Rule.ID(engine: engine, token: "format")
     let measurement = Source.Measurement.swiftFormat(
       engine: engine,
       subject: subject,
@@ -29,12 +29,12 @@ struct `Source external measurements` {
   }
 
   @Test
-  func `swift format rejects unknown rule output`() {
+  func `swift format rejects a noncanonical profile`() {
     let engine = Source.Engine.ID("swift-format")
     let measurement = Source.Measurement.swiftFormat(
       engine: engine,
       subject: subject,
-      rules: [.init(engine: engine, token: "Spacing")],
+      rules: [.init(engine: engine, token: "other")],
       status: 1,
       output: "",
       diagnostics: "/package/A.swift:1:6: error: [Other] message\n"
@@ -43,7 +43,7 @@ struct `Source external measurements` {
       Issue.record("expected unmeasured")
       return
     }
-    #expect(reasons.map(\.code) == ["malformed-output"])
+    #expect(reasons.map(\.code) == ["rule-profile"])
   }
 
   @Test
