@@ -1,8 +1,3 @@
-// Source Tests.swift
-// swift-source
-//
-// Tests for Source.Loader, Source.Cache, and Source.Error.
-
 import Testing
 
 @testable import Source
@@ -10,14 +5,6 @@ import Testing
 extension Source.Loader {
     @Suite
     struct Test {
-
-        // MARK: - Loader
-        //
-        // These cases name POSIX paths (`/usr/bin/true`, `/dev/null`) and
-        // expect POSIX outcomes, so they describe `load(contentsOf:)` only
-        // where it has a POSIX layer to call. Elsewhere the documented
-        // contract is a different one — `unsupportedPlatform` — and it is
-        // asserted directly rather than left unexercised.
 
         #if canImport(Darwin) || canImport(Glibc) || canImport(Musl)
 
@@ -36,15 +23,14 @@ extension Source.Loader {
 
                 @Test
                 func `load Existing File Returns Bytes`() throws {
-                    // /usr/bin/true exists on all POSIX systems and is a small binary.
-                    // We just verify it loads without error and returns non-empty data.
+
                     let bytes = try Source.Loader.load(contentsOf: "/usr/bin/true")
                     #expect(!bytes.isEmpty)
                 }
 
                 @Test
                 func `load Empty File Returns Empty Array`() throws {
-                    // /dev/null reads as empty.
+
                     let bytes = try Source.Loader.load(contentsOf: "/dev/null")
                     #expect(bytes.isEmpty)
                 }
@@ -64,14 +50,12 @@ extension Source.Loader {
 
         #endif
 
-        // MARK: - BOM Stripping
-
         @Suite
         struct `BOM Stripping` {
             @Test
             func `strip BOM From Prefixed Buffer`() {
                 let bom: [UInt8] = [0xEF, 0xBB, 0xBF]
-                let content: [UInt8] = [0x41, 0x42, 0x43]  // "ABC"
+                let content: [UInt8] = [0x41, 0x42, 0x43]
                 let input = bom + content
                 let result = Source.Loader._stripBOM(from: input)
                 #expect(result == content)
@@ -79,7 +63,7 @@ extension Source.Loader {
 
             @Test
             func `preserve Buffer Without BOM`() {
-                let content: [UInt8] = [0x41, 0x42, 0x43]  // "ABC"
+                let content: [UInt8] = [0x41, 0x42, 0x43]
                 let result = Source.Loader._stripBOM(from: content)
                 #expect(result == content)
             }
@@ -92,7 +76,7 @@ extension Source.Loader {
 
             @Test
             func `preserve Partial BOM Prefix`() {
-                // Only 2 of 3 BOM bytes — should NOT strip.
+
                 let content: [UInt8] = [0xEF, 0xBB, 0x41]
                 let result = Source.Loader._stripBOM(from: content)
                 #expect(result == content)
@@ -107,8 +91,6 @@ extension Source.Loader {
         }
     }
 }
-
-// MARK: - Cache
 
 extension Source.Cache {
     @Suite
@@ -126,11 +108,6 @@ extension Source.Cache {
             #expect(removed == nil)
         }
 
-        // The cases below reach the loader, so they hold only where the
-        // loader has a POSIX layer to call and they name POSIX paths.
-        // Elsewhere the cache passes the loader's `unsupportedPlatform`
-        // through, and that is what is asserted instead.
-
         #if canImport(Darwin) || canImport(Glibc) || canImport(Musl)
 
             @Test
@@ -142,7 +119,7 @@ extension Source.Cache {
 
                 let second = try cache.load(contentsOf: "/dev/null")
                 #expect(first == second)
-                #expect(cache.count == 1)  // No additional entry.
+                #expect(cache.count == 1)
             }
 
             @Test
@@ -189,8 +166,6 @@ extension Source.Cache {
     }
 }
 
-// MARK: - Error
-
 extension Source.Error {
     @Suite
     struct Test {
@@ -208,9 +183,7 @@ extension Source.Error {
 
         @Test
         func `unsupported platform is a representable typed failure`() {
-            // The non-POSIX branch of Source.Loader.load(contentsOf:) throws this
-            // case instead of terminating the process; the case must exist,
-            // describe itself, and compare equal to itself on every platform.
+
             let unsupported = Source.Error.unsupportedPlatform
             #expect(unsupported.description.contains("not implemented"))
             #expect(unsupported == .unsupportedPlatform)

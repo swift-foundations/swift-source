@@ -1,8 +1,3 @@
-// Source.Loader Edge Cases.swift
-// swift-source
-//
-// Regression tests for short-read and EOF handling (fable-448 F-001).
-
 import Testing
 
 @testable import Source
@@ -15,12 +10,6 @@ import Testing
     import Musl
 #endif
 
-// These cases drive `_readFully` through a real pipe, so they exist only
-// where `_readFully` does. `Source.Loader` compiles its reading path under
-// the same condition and `load(contentsOf:)` throws `unsupportedPlatform`
-// elsewhere, so there is no short-read behaviour to assert on a platform
-// without the POSIX layer — the tests follow the implementation rather
-// than being switched off for one.
 #if canImport(Darwin) || canImport(Glibc) || canImport(Musl)
 
     extension Source.Loader.Test {
@@ -28,10 +17,7 @@ import Testing
         struct `Edge Case` {
             @Test
             func `read Fully Returns Bytes Actually Read On Early EOF`() throws {
-                // A pipe with 4 buffered bytes and a closed write end delivers a
-                // short read (4 of 8 requested) followed by EOF. The loader must
-                // return the 4 bytes actually read — not a spurious .readFailed
-                // carrying a stale errno.
+
                 var fds: [Int32] = [-1, -1]
                 let pipeResult = fds.withUnsafeMutableBufferPointer { pointer in
                     pipe(pointer.baseAddress)
@@ -41,14 +27,13 @@ import Testing
                 let writeEnd = fds[1]
                 defer { close(readEnd) }
 
-                let payload: [UInt8] = [0x41, 0x42, 0x43, 0x44]  // "ABCD"
+                let payload: [UInt8] = [0x41, 0x42, 0x43, 0x44]
                 let written = payload.withUnsafeBufferPointer { pointer in
                     write(writeEnd, pointer.baseAddress, pointer.count)
                 }
                 close(writeEnd)
                 try #require(written == payload.count)
 
-                // Poison errno so a stale-errno .readFailed is distinguishable.
                 errno = EIO
 
                 let bytes = try Source.Loader._readFully(fd: readEnd, count: 8, path: "<pipe>")
@@ -79,9 +64,7 @@ import Testing
 
             @Test
             func `read Fully Throws Read Failed With Real Errno On Read Error`() throws {
-                // read(2) on a descriptor opened write-only fails with EBADF;
-                // the thrown error must carry that errno, captured at the failing
-                // read call — not an unrelated stale value.
+
                 var fds: [Int32] = [-1, -1]
                 let pipeResult = fds.withUnsafeMutableBufferPointer { pointer in
                     pipe(pointer.baseAddress)
