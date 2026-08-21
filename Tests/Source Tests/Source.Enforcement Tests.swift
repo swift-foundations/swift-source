@@ -234,6 +234,92 @@ func `repair stages remeasures and publishes bound bytes`() throws {
 }
 
 @Test
+func `rule scoped repair still accepts clean remeasurement by every engine`() throws {
+  let original = [UInt8]("let x = 1\n".utf8)
+  let replacement = [UInt8]("let value = 1\n".utf8)
+  let unavailable = Source.Reason(code: "missing", detail: "missing")
+  let files = Source.Repair.FileSystem(
+    exists: { $0 == "A.swift" },
+    read: { path in path == "A.swift" ? .success(original) : .failure(unavailable) },
+    write: { _, _ in .failure(unavailable) },
+    move: { _, _ in .failure(unavailable) },
+    delete: { _ in .failure(unavailable) }
+  )
+  let subject = Source.Subject(identity: "package", root: "/package", files: ["A.swift"])
+  let linter = Source.Engine.ID("swift-linter")
+  let format = Source.Engine.ID("swift-format")
+  let selected = Source.Rule.ID(engine: linter, token: "selected")
+  let formatting = Source.Rule.ID(engine: format, token: "formatting")
+  let finding = Source.Finding(
+    rule: selected,
+    diagnostic: .init(
+      location: .init(fileID: "A.swift", filePath: "/package/A.swift", line: 1, column: 5),
+      severity: .error,
+      identifier: "selected",
+      message: "rename"
+    ),
+    repair: .automatic
+  )
+  let measured = [
+    Source.Measurement(
+      engine: linter,
+      subject: subject,
+      activeRules: [selected],
+      applicableRules: [selected],
+      files: ["/package/A.swift"],
+      observations: [
+        .init(file: "/package/A.swift", rule: selected, applicable: true, coverage: .measured)
+      ],
+      repairs: [
+        .init(
+          file: "/package/A.swift",
+          rule: selected,
+          disposition: .edits([
+            .rewrite(
+              path: "/package/A.swift",
+              contents: Swift.String(decoding: replacement, as: UTF8.self)
+            )
+          ])
+        )
+      ],
+      verdict: .findings([finding])
+    ),
+    Source.Measurement(
+      engine: format,
+      subject: subject,
+      activeRules: [formatting],
+      applicableRules: [formatting],
+      files: ["/package/A.swift"],
+      observations: [
+        .init(file: "/package/A.swift", rule: formatting, applicable: true, coverage: .measured)
+      ],
+      verdict: .clean
+    ),
+  ]
+  let staging = try Source.Repair.Staging(
+    subject: subject,
+    profile: .init("profile"),
+    sources: Source.SourceSet.digest([.init(path: "A.swift", contents: original)]),
+    measurements: measured,
+    rules: [selected],
+    fileSystem: files
+  )
+  let remeasured = measured.map { measurement in
+    Source.Measurement(
+      engine: measurement.engine,
+      subject: subject,
+      activeRules: measurement.activeRules,
+      applicableRules: measurement.applicableRules,
+      files: measurement.files,
+      observations: measurement.observations,
+      verdict: .clean
+    )
+  }
+
+  #expect(staging.finish(remeasured: remeasured).refusals.isEmpty)
+}
+
+@Test
 func `repair refuses stale plan bindings before publication`() {
   let state = Mutex(["A": [UInt8](arrayLiteral: 1)])
   let reason = Source.Reason(code: "missing", detail: "missing")

@@ -119,11 +119,11 @@ extension Source.Repair {
             selectedRules?.filter { $0.engine == measurement.engine }
               ?? measurement.activeRules
           )
+          guard !required.isEmpty else { continue }
           let observations = measurement.observations.filter {
             required.contains($0.rule)
           }
           let complete = !measurement.files.isEmpty
-            && !required.isEmpty
             && required.isSubset(of: Swift.Set(measurement.activeRules))
             && required.isSubset(of: Swift.Set(measurement.applicableRules))
             && observations.count == measurement.files.count * required.count
