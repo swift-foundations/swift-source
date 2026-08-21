@@ -4,14 +4,16 @@ extension Source.Engine {
             @Sendable (
                 _ executable: Swift.String,
                 _ arguments: [Swift.String],
-                _ directory: Swift.String
+                _ directory: Swift.String,
+                _ environment: [Swift.String: Swift.String]
             ) async -> Result
 
         public init(
             run: @escaping @Sendable (
                 _ executable: Swift.String,
                 _ arguments: [Swift.String],
-                _ directory: Swift.String
+                _ directory: Swift.String,
+                _ environment: [Swift.String: Swift.String]
             ) async -> Result
         ) {
             self.run = run

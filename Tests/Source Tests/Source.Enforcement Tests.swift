@@ -10,9 +10,10 @@ func `profile identity is content addressed and deterministic`() {
   let engine = Source.Profile.Engine(
     id: .init("swift-linter"),
     executable: "/tool",
-    tool: .init("tool"),
-    configuration: .init("configuration"),
-    rules: [.init(engine: .init("swift-linter"), token: "rule")]
+        tool: .init("tool"),
+        configuration: .init("configuration"),
+        configurationPath: "/configuration",
+        rules: [.init(engine: .init("swift-linter"), token: "rule")]
   )
   let left = Source.Profile(revision: "1", engines: [engine])
   let right = Source.Profile(revision: "1", engines: [engine])
@@ -29,9 +30,10 @@ func `execution fails closed when an engine driver is absent`() async throws {
       .init(
         id: .init("swift-linter"),
         executable: "/tool",
-        tool: .init("tool"),
-        configuration: .init("configuration"),
-        rules: [rule]
+                tool: .init("tool"),
+                configuration: .init("configuration"),
+                configurationPath: "/configuration",
+                rules: [rule]
       )
     ]
   )

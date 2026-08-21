@@ -4,6 +4,8 @@ extension Source.Profile {
         public let executable: Swift.String
         public let tool: Digest
         public let configuration: Digest
+        public let configurationPath: Swift.String
+        public let environment: [Swift.String: Swift.String]
         public let rules: [Source.Rule.ID]
 
         public init(
@@ -11,12 +13,16 @@ extension Source.Profile {
             executable: Swift.String,
             tool: Digest,
             configuration: Digest,
+            configurationPath: Swift.String,
+            environment: [Swift.String: Swift.String] = [:],
             rules: [Source.Rule.ID]
         ) {
             self.id = id
             self.executable = executable
             self.tool = tool
             self.configuration = configuration
+            self.configurationPath = configurationPath
+            self.environment = environment
             self.rules = rules.sorted {
                 ($0.engine.token, $0.token) < ($1.engine.token, $1.token)
             }
@@ -28,6 +34,8 @@ extension Source.Profile {
                 "executable": value.executable.json,
                 "tool": value.tool.json,
                 "configuration": value.configuration.json,
+                "configurationPath": value.configurationPath.json,
+                "environment": value.environment.json,
                 "rules": value.rules.json,
             ]
         }
@@ -42,12 +50,20 @@ extension Source.Profile {
             guard let configuration = object["configuration"] else {
                 throw .missingKey("configuration")
             }
+            guard let configurationPath = object["configurationPath"] else {
+                throw .missingKey("configurationPath")
+            }
+            guard let environment = object["environment"] else {
+                throw .missingKey("environment")
+            }
             guard let rules = object["rules"] else { throw .missingKey("rules") }
             return try Self(
                 id: Source.Engine.ID(json: id),
                 executable: Swift.String(json: executable),
                 tool: Digest(json: tool),
                 configuration: Digest(json: configuration),
+                configurationPath: Swift.String(json: configurationPath),
+                environment: [Swift.String: Swift.String](json: environment),
                 rules: [Source.Rule.ID](json: rules)
             )
         }

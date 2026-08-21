@@ -7,7 +7,8 @@ extension Source.Engine.Driver {
                 let result = await process.run(
                     profile.executable,
                     ["--format", "structured", "--exit-policy", "strict", subject.root],
-                    subject.root
+                    subject.root,
+                    profile.environment
                 )
                 return Source.Measurement.linter(
                     engine: id,

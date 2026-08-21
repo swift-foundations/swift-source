@@ -7,9 +7,10 @@ extension Source.Engine.Driver {
         let files = sourceSwiftFormatFiles(subject)
         let result = await process.run(
           profile.executable,
-          ["lint", "--strict"] + files,
-          subject.root
-        )
+                    ["lint", "--strict", "--configuration", profile.configurationPath] + files,
+                    subject.root,
+                    profile.environment
+                )
         return Source.Measurement.swiftFormat(
           engine: id,
           subject: subject,

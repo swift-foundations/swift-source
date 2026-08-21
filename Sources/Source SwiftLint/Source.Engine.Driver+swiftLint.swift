@@ -7,10 +7,14 @@ extension Source.Engine.Driver {
         let files = sourceSwiftLintFiles(subject)
         let result = await process.run(
           profile.executable,
-          ["lint", "--strict", "--quiet", "--no-cache", "--reporter", "json"]
-            + files,
-          subject.root
-        )
+                    [
+                        "lint", "--strict", "--quiet", "--no-cache", "--reporter", "json",
+                        "--config", profile.configurationPath,
+                    ]
+                        + files,
+                    subject.root,
+                    profile.environment
+                )
         return Source.Measurement.swiftLint(
           engine: id,
           subject: subject,
