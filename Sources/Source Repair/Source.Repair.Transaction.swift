@@ -195,7 +195,6 @@ extension Source.Repair {
       return nil
     }
 
-
     private func digest(_ contents: [UInt8]) -> Swift.String {
       FIPS_180_4.SHA256.digest(contents.map(Byte.init)).hex
     }
