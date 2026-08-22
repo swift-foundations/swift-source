@@ -3,17 +3,17 @@ extension Source.Repair {
     public let subject: Source.Subject.Binding
     public let profile: Source.Profile.Digest
     public let sources: Source.SourceSet.Digest
-    public let operations: [Operation]
-    public let refusals: [Refusal]
-    public let postconditions: [Postcondition]
+    public let operations: [Source.Repair.Operation]
+    public let refusals: [Source.Repair.Refusal]
+    public let postconditions: [Source.Repair.Postcondition]
 
     public init(
       subject: Source.Subject.Binding,
       profile: Source.Profile.Digest,
       sources: Source.SourceSet.Digest,
-      operations: [Operation],
-      refusals: [Refusal],
-      postconditions: [Postcondition]
+      operations: [Source.Repair.Operation],
+      refusals: [Source.Repair.Refusal],
+      postconditions: [Source.Repair.Postcondition]
     ) {
       self.subject = subject
       self.profile = profile
@@ -65,9 +65,9 @@ extension Source.Repair.Plan: JSON.Serializable {
       subject: Source.Subject.Binding(json: required("subject")),
       profile: Source.Profile.Digest(json: required("profile")),
       sources: Source.SourceSet.Digest(json: required("sources")),
-      operations: [Operation](json: required("operations")),
-      refusals: [Refusal](json: required("refusals")),
-      postconditions: [Postcondition](json: required("postconditions"))
+      operations: [Source.Repair.Operation](json: required("operations")),
+      refusals: [Source.Repair.Refusal](json: required("refusals")),
+      postconditions: [Source.Repair.Postcondition](json: required("postconditions"))
     )
   }
 }
