@@ -3,17 +3,17 @@ extension Source.Artifact {
     public let subject: Swift.String
     public let artifact: Source.Artifact
     public let predicate: Source.Rule.ID
-    public let actual: Identity
-    public let expected: Identity
-    public let verdict: Verdict
+    public let actual: Source.Artifact.Identity
+    public let expected: Source.Artifact.Identity
+    public let verdict: Source.Artifact.Verdict
 
     public init(
       subject: Swift.String,
       artifact: Source.Artifact,
       predicate: Source.Rule.ID,
-      actual: Identity,
-      expected: Identity,
-      verdict: Verdict
+      actual: Source.Artifact.Identity,
+      expected: Source.Artifact.Identity,
+      verdict: Source.Artifact.Verdict
     ) {
       self.subject = subject
       self.artifact = artifact
@@ -55,9 +55,9 @@ extension Source.Artifact.Evidence: JSON.Serializable {
       subject: Swift.String(json: required("subject")),
       artifact: Source.Artifact(json: required("artifact")),
       predicate: Source.Rule.ID(json: required("predicate")),
-      actual: Identity(json: required("actual")),
-      expected: Identity(json: required("expected")),
-      verdict: Verdict(json: required("verdict"))
+      actual: Source.Artifact.Identity(json: required("actual")),
+      expected: Source.Artifact.Identity(json: required("expected")),
+      verdict: Source.Artifact.Verdict(json: required("verdict"))
     )
   }
 }

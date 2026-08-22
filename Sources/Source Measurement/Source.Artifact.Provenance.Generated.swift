@@ -1,12 +1,12 @@
 extension Source.Artifact.Provenance {
   public struct Generated: Hashable, Sendable {
-    public let owner: Owner
+    public let owner: Source.Artifact.Provenance.Owner
     public let input: Swift.String
     public let revision: Swift.String
     public let digest: Swift.String
 
     public init(
-      owner: Owner,
+      owner: Source.Artifact.Provenance.Owner,
       input: Swift.String,
       revision: Swift.String,
       digest: Swift.String
@@ -36,7 +36,7 @@ extension Source.Artifact.Provenance.Generated: JSON.Serializable {
       let revision = object["revision"], let digest = object["digest"]
     else { throw .typeMismatch(expected: "generated provenance", got: "other") }
     return try .init(
-      owner: Owner(json: owner),
+      owner: Source.Artifact.Provenance.Owner(json: owner),
       input: Swift.String(json: input),
       revision: Swift.String(json: revision),
       digest: Swift.String(json: digest)
