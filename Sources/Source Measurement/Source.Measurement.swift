@@ -8,6 +8,7 @@ extension Source {
     public let observations: [Rule.Observation]
     public let suppressions: [Finding]
     public let repairs: [Repair.Evidence]
+    public let controls: [Rule.Control.Evidence]
     public let verdict: Verdict
 
     public init(
@@ -19,6 +20,7 @@ extension Source {
       observations: [Rule.Observation] = [],
       suppressions: [Finding] = [],
       repairs: [Repair.Evidence] = [],
+      controls: [Rule.Control.Evidence] = [],
       verdict: Verdict
     ) {
       self.engine = engine
@@ -35,6 +37,10 @@ extension Source {
       }
       self.repairs = repairs.sorted {
         ($0.file, $0.rule.token) < ($1.file, $1.rule.token)
+      }
+      self.controls = controls.sorted {
+        ($0.rule.engine.token, $0.rule.token, $0.identity)
+          < ($1.rule.engine.token, $1.rule.token, $1.identity)
       }
       self.verdict = verdict
     }

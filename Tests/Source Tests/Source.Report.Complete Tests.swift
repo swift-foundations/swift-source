@@ -191,6 +191,7 @@ func `complete report rejects a dropped active rule`() {
     applicableRules: [],
     files: ["/workspace/swift-example/Package.swift"],
     observations: [],
+    controls: [controlEvidence[0]],
     verdict: .clean
   )
   let report = Source.Report(
@@ -259,6 +260,7 @@ private let measurement = Source.Measurement(
       coverage: .measured
     )
   ],
+  controls: [controlEvidence[0]],
   verdict: .clean
 )
 

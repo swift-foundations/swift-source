@@ -129,6 +129,20 @@ extension Source.Report {
       guard report.controlEvidence.count == artifactControls.count,
         Set(report.controlEvidence.map(\.identity)).count == report.controlEvidence.count
       else { throw .coverage("control evidence") }
+      let transportedControls = report.measurements.flatMap(\.controls)
+      let engineRuleIDs = Set(commitment.requirements.flatMap(\.rules))
+      guard
+        report.controlEvidence.filter({ engineRuleIDs.contains($0.rule) }).allSatisfy({
+          expected in
+          transportedControls.contains { Self.same($0, expected) }
+        }),
+        transportedControls.allSatisfy({ measured in
+          report.controlEvidence.contains { Self.same(measured, $0) }
+        }),
+        report.measurements.allSatisfy({ measurement in
+          Set(measurement.controls.map(\.identity)).count == measurement.controls.count
+        })
+      else { throw .coverage("transported control evidence") }
       for control in artifactControls {
         guard
           let artifact = commitment.subjects
@@ -410,6 +424,33 @@ extension Source.Report.Complete {
       finding.diagnostic.identifier,
       finding.diagnostic.message,
     ].joined(separator: "\u{0}")
+  }
+
+  private static func same(
+    _ lhs: Source.Rule.Control.Evidence,
+    _ rhs: Source.Rule.Control.Evidence
+  ) -> Swift.Bool {
+    lhs.identity == rhs.identity
+      && lhs.rule == rhs.rule
+      && lhs.expectation == rhs.expectation
+      && lhs.actualFindings == rhs.actualFindings
+      && same(lhs.verdict, rhs.verdict)
+  }
+
+  private static func same(
+    _ lhs: Source.Artifact.Verdict,
+    _ rhs: Source.Artifact.Verdict
+  ) -> Swift.Bool {
+    switch (lhs, rhs) {
+    case (.clean, .clean):
+      true
+    case (.findings(let left), .findings(let right)):
+      left == right
+    case (.unmeasured(let left), .unmeasured(let right)):
+      left == right
+    default:
+      false
+    }
   }
 
   private static func absolute(

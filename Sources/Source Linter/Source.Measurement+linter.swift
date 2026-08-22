@@ -64,11 +64,11 @@ private func sourceLinterMeasurement(
     document,
     required: [
       "schema", "files", "activeRules", "applicableRules", "observations",
-      "findings", "suppressions", "repairProposals", "summary",
+      "findings", "suppressions", "repairProposals", "controls", "summary",
     ]
   )
-  guard try sourceLinterInt(root["schema"]) == 1 else {
-    throw .init(code: "schema-mismatch", detail: "expected swift-linter schema 1")
+  guard try sourceLinterInt(root["schema"]) == 2 else {
+    throw .init(code: "schema-mismatch", detail: "expected swift-linter schema 2")
   }
 
   let expectedRuleTokens = rules.map(\.token)
@@ -187,12 +187,26 @@ private func sourceLinterMeasurement(
     throw .init(code: "repair-coverage", detail: "repair proposals do not match findings")
   }
 
+  let controls = try sourceLinterControls(
+    root["controls"],
+    engine: engine,
+    rules: expectedRuleTokens
+  )
+  let unmeasuredControls = controls.compactMap { evidence -> Source.Reason? in
+    if case .unmeasured(let reasons) = evidence.verdict { return reasons.first }
+    return nil
+  }
+  let failedControls = controls.count { evidence in
+    if case .findings = evidence.verdict { true } else { false }
+  }
+
   let summary = try sourceLinterObject(
     root["summary"],
     required: [
       "files", "activeRules", "applicableRules", "applicableObservations",
       "measuredObservations", "unmeasuredObservations", "findings",
       "suppressions", "repairProposals",
+      "controls", "failedControls", "unmeasuredControls",
     ]
   )
   let measuredCount = observations.count { if case .measured = $0.coverage { true } else { false } }
@@ -206,6 +220,9 @@ private func sourceLinterMeasurement(
     "findings": findings.count,
     "suppressions": suppressions.count,
     "repairProposals": repairs.count,
+    "controls": controls.count,
+    "failedControls": failedControls,
+    "unmeasuredControls": unmeasuredControls.count,
   ]
   for (key, count) in expectedCounts {
     guard try sourceLinterInt(summary[key]) == count else {
@@ -214,7 +231,10 @@ private func sourceLinterMeasurement(
   }
 
   let hasError = findings.contains { $0.diagnostic.severity == .error }
-  let expectedStatus: Swift.Int32 = unmeasured.isEmpty ? (hasError ? 1 : 0) : 2
+  let expectedStatus: Swift.Int32 =
+    unmeasured.isEmpty && unmeasuredControls.isEmpty
+    ? (hasError || failedControls > 0 ? 1 : 0)
+    : 2
   guard status == expectedStatus else {
     throw .init(
       code: "engine-status-mismatch",
@@ -239,8 +259,95 @@ private func sourceLinterMeasurement(
     observations: observations,
     suppressions: suppressions,
     repairs: repairs,
+    controls: controls,
     verdict: verdict
   )
+}
+
+private func sourceLinterControls(
+  _ value: JSON?,
+  engine: Source.Engine.ID,
+  rules: [Swift.String]
+) throws(Source.Reason) -> [Source.Rule.Control.Evidence] {
+  let values = try sourceLinterArray(value)
+  var identities: Swift.Set<Swift.String> = []
+  var evidence: [Source.Rule.Control.Evidence] = []
+  for value in values {
+    let object = try sourceLinterObject(
+      value,
+      required: ["identity", "rule", "expectation", "actualFindings", "coverage"]
+    )
+    let identity = try sourceLinterString(object["identity"])
+    let token = try sourceLinterString(object["rule"])
+    guard !identity.isEmpty, identities.insert(identity).inserted, rules.contains(token) else {
+      throw .init(code: "control-identity", detail: "duplicate, empty, or unknown control")
+    }
+    let expectationObject = try sourceLinterObject(
+      object["expectation"],
+      required: ["status"],
+      optional: ["count"]
+    )
+    let expectation: Source.Artifact.Purpose.Control.Expectation
+    let expectedFindings: Swift.Int
+    switch try sourceLinterString(expectationObject["status"]) {
+    case "clean":
+      guard expectationObject["count"] == nil else {
+        throw .init(code: "control-expectation", detail: "clean control carried a count")
+      }
+      expectation = .clean
+      expectedFindings = 0
+    case "findings":
+      let count = try sourceLinterInt(expectationObject["count"])
+      guard count > 0 else {
+        throw .init(code: "control-expectation", detail: "finding count must be positive")
+      }
+      expectation = .findings(count)
+      expectedFindings = count
+    default:
+      throw .init(code: "control-expectation", detail: "unknown status")
+    }
+    let actual = try sourceLinterInt(object["actualFindings"])
+    guard actual >= 0 else { throw .init(code: "control-count", detail: "negative count") }
+    let coverageObject = try sourceLinterObject(
+      object["coverage"],
+      required: ["status"],
+      optional: ["reason"]
+    )
+    let verdict: Source.Artifact.Verdict
+    switch try sourceLinterString(coverageObject["status"]) {
+    case "measured":
+      guard coverageObject["reason"] == nil else {
+        throw .init(code: "control-coverage", detail: "measured control carried a reason")
+      }
+      verdict =
+        actual == expectedFindings
+        ? .clean
+        : .findings([
+          .init(code: "control-count", detail: "expected \(expectedFindings), received \(actual)")
+        ])
+    case "unmeasured":
+      guard let reason = coverageObject["reason"] else {
+        throw .init(code: "control-coverage", detail: "unmeasured control omitted reason")
+      }
+      verdict = .unmeasured([try sourceLinterReason(reason)])
+    default:
+      throw .init(code: "control-coverage", detail: "unknown status")
+    }
+    evidence.append(
+      .init(
+        identity: identity,
+        rule: .init(engine: engine, token: token),
+        expectation: expectation,
+        actualFindings: actual,
+        verdict: verdict
+      )
+    )
+  }
+  let coveredRules = Swift.Set(evidence.map(\.rule.token))
+  guard coveredRules == Swift.Set(rules) else {
+    throw .init(code: "control-catalog", detail: "every active rule requires control evidence")
+  }
+  return evidence
 }
 
 private func sourceLinterRepairs(

@@ -207,6 +207,15 @@ extension `Source report complete validation` {
         .init(file: path, rule: rule, applicable: applicable, coverage: .measured)
       ],
       repairs: repairs,
+      controls: [
+        .init(
+          identity: "rule-positive",
+          rule: rule,
+          expectation: .findings(1),
+          actualFindings: 1,
+          verdict: .clean
+        )
+      ],
       verdict: .findings(findings)
     )
   }

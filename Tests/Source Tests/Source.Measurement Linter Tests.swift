@@ -31,6 +31,7 @@ struct `Source linter measurement` {
     #expect(measurement.observations.count == 1)
     #expect(measurement.suppressions.isEmpty)
     #expect(measurement.repairs.isEmpty)
+    #expect(measurement.controls.count == 1)
   }
 
   @Test
@@ -53,7 +54,7 @@ struct `Source linter measurement` {
 
   @Test(arguments: [
     ("{", "malformed-output"),
-    (replace(clean, "\"schema\":1", with: "\"schema\":1,\"extra\":0"), "unconsumed-output"),
+    (replace(clean, "\"schema\":2", with: "\"schema\":2,\"extra\":0"), "unconsumed-output"),
     (replace(clean, observation, with: ""), "observation-count"),
     (
       replace(clean, "\"activeRules\":[\"rule\"]", with: "\"activeRules\":[\"other\"]"),
@@ -129,11 +130,15 @@ struct `Source linter measurement` {
     """
 
   private static let clean = """
-    {"schema":1,"files":["/package/A.swift"],"activeRules":["rule"],"applicableRules":["rule"],"observations":[\(observation)],"findings":[],"suppressions":[],"repairProposals":[],"summary":{"files":1,"activeRules":1,"applicableRules":1,"applicableObservations":1,"measuredObservations":1,"unmeasuredObservations":0,"findings":0,"suppressions":0,"repairProposals":0}}
+    {"schema":2,"files":["/package/A.swift"],"activeRules":["rule"],"applicableRules":["rule"],"observations":[\(observation)],"findings":[],"suppressions":[],"repairProposals":[],"controls":[\(control)],"summary":{"files":1,"activeRules":1,"applicableRules":1,"applicableObservations":1,"measuredObservations":1,"unmeasuredObservations":0,"findings":0,"suppressions":0,"repairProposals":0,"controls":1,"failedControls":0,"unmeasuredControls":0}}
     """
 
   private static let finding = """
-    {"schema":1,"files":["/package/A.swift"],"activeRules":["rule"],"applicableRules":["rule"],"observations":[\(observation)],"findings":[{"rule":"rule","severity":"error","message":"message","fileID":"A.swift","filePath":"/package/A.swift","line":1,"column":1}],"suppressions":[{"rule":"rule","severity":"note","message":"suppressed","fileID":"A.swift","filePath":"/package/A.swift","line":2,"column":1,"visibility":"internal"}],"repairProposals":[{"file":"/package/A.swift","rule":"rule","proposal":{"status":"edits","edits":[{"operation":"rewrite","path":"/package/A.swift","contents":"fixed"}]}}],"summary":{"files":1,"activeRules":1,"applicableRules":1,"applicableObservations":1,"measuredObservations":1,"unmeasuredObservations":0,"findings":1,"suppressions":1,"repairProposals":1}}
+    {"schema":2,"files":["/package/A.swift"],"activeRules":["rule"],"applicableRules":["rule"],"observations":[\(observation)],"findings":[{"rule":"rule","severity":"error","message":"message","fileID":"A.swift","filePath":"/package/A.swift","line":1,"column":1}],"suppressions":[{"rule":"rule","severity":"note","message":"suppressed","fileID":"A.swift","filePath":"/package/A.swift","line":2,"column":1,"visibility":"internal"}],"repairProposals":[{"file":"/package/A.swift","rule":"rule","proposal":{"status":"edits","edits":[{"operation":"rewrite","path":"/package/A.swift","contents":"fixed"}]}}],"controls":[\(control)],"summary":{"files":1,"activeRules":1,"applicableRules":1,"applicableObservations":1,"measuredObservations":1,"unmeasuredObservations":0,"findings":1,"suppressions":1,"repairProposals":1,"controls":1,"failedControls":0,"unmeasuredControls":0}}
+    """
+
+  private static let control = """
+    {"identity":"rule-positive","rule":"rule","expectation":{"status":"findings","count":1},"actualFindings":1,"coverage":{"status":"measured"}}
     """
 
   private static func replace(
